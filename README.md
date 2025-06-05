@@ -75,3 +75,11 @@
 - **安全性**：严格控制权限和数据存储，防止未授权访问。
 
 通过以上设计，该测试平台软件将实现模块化、可配置性强、易用性高和安全性好的目标，满足当前需求并具备扩展潜力。
+
+
+## Example Project
+
+A simple example project demonstrating the concepts described above can be found in the `TestPlatformExample` directory.
+This example includes a basic UI, a core platform component, and a sample plugin.
+
+For detailed instructions on how to build and run this example, please see the [Example Project README](./TestPlatformExample/README_Example.md).

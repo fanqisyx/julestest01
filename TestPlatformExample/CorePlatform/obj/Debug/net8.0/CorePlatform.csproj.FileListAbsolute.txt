@@ -1,0 +1,12 @@
+/app/TestPlatformExample/CorePlatform/bin/Debug/net8.0/CorePlatform.deps.json
+/app/TestPlatformExample/CorePlatform/bin/Debug/net8.0/CorePlatform.dll
+/app/TestPlatformExample/CorePlatform/bin/Debug/net8.0/CorePlatform.pdb
+/app/TestPlatformExample/CorePlatform/obj/Debug/net8.0/CorePlatform.GeneratedMSBuildEditorConfig.editorconfig
+/app/TestPlatformExample/CorePlatform/obj/Debug/net8.0/CorePlatform.AssemblyInfoInputs.cache
+/app/TestPlatformExample/CorePlatform/obj/Debug/net8.0/CorePlatform.AssemblyInfo.cs
+/app/TestPlatformExample/CorePlatform/obj/Debug/net8.0/CorePlatform.csproj.CoreCompileInputs.cache
+/app/TestPlatformExample/CorePlatform/obj/Debug/net8.0/CorePlatform.sourcelink.json
+/app/TestPlatformExample/CorePlatform/obj/Debug/net8.0/CorePlatform.dll
+/app/TestPlatformExample/CorePlatform/obj/Debug/net8.0/refint/CorePlatform.dll
+/app/TestPlatformExample/CorePlatform/obj/Debug/net8.0/CorePlatform.pdb
+/app/TestPlatformExample/CorePlatform/obj/Debug/net8.0/ref/CorePlatform.dll

@@ -1,0 +1,16 @@
+/app/TestPlatformExample/SamplePlugin/bin/Debug/net8.0/SamplePlugin.deps.json
+/app/TestPlatformExample/SamplePlugin/bin/Debug/net8.0/SamplePlugin.dll
+/app/TestPlatformExample/SamplePlugin/bin/Debug/net8.0/SamplePlugin.pdb
+/app/TestPlatformExample/SamplePlugin/bin/Debug/net8.0/CorePlatform.dll
+/app/TestPlatformExample/SamplePlugin/bin/Debug/net8.0/CorePlatform.pdb
+/app/TestPlatformExample/SamplePlugin/obj/Debug/net8.0/SamplePlugin.csproj.AssemblyReference.cache
+/app/TestPlatformExample/SamplePlugin/obj/Debug/net8.0/SamplePlugin.GeneratedMSBuildEditorConfig.editorconfig
+/app/TestPlatformExample/SamplePlugin/obj/Debug/net8.0/SamplePlugin.AssemblyInfoInputs.cache
+/app/TestPlatformExample/SamplePlugin/obj/Debug/net8.0/SamplePlugin.AssemblyInfo.cs
+/app/TestPlatformExample/SamplePlugin/obj/Debug/net8.0/SamplePlugin.csproj.CoreCompileInputs.cache
+/app/TestPlatformExample/SamplePlugin/obj/Debug/net8.0/SamplePlugin.sourcelink.json
+/app/TestPlatformExample/SamplePlugin/obj/Debug/net8.0/SamplePlugin.csproj.CopyComplete
+/app/TestPlatformExample/SamplePlugin/obj/Debug/net8.0/SamplePlugin.dll
+/app/TestPlatformExample/SamplePlugin/obj/Debug/net8.0/refint/SamplePlugin.dll
+/app/TestPlatformExample/SamplePlugin/obj/Debug/net8.0/SamplePlugin.pdb
+/app/TestPlatformExample/SamplePlugin/obj/Debug/net8.0/ref/SamplePlugin.dll
