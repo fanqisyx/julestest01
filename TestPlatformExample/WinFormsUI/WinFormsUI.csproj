@@ -8,6 +8,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\CorePlatform\CorePlatform.csproj" />
-    <ProjectReference Include="..\SamplePlugin\SamplePlugin.csproj" />
+    <!-- <ProjectReference Include="..\SamplePlugin\SamplePlugin.csproj" /> --> <!-- Removed for dynamic loading -->
   </ItemGroup>
 </Project>

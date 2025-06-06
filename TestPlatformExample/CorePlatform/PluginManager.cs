@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.IO; // Added for Directory and Path operations
 
 namespace CorePlatform
 {
@@ -10,67 +11,85 @@ namespace CorePlatform
         public PluginManager(Action<string> logCallback)
         {
             _logCallback = logCallback;
+            // Initialize _plugins if it's null, though field initializer does this.
+            // _plugins = _plugins ?? new List<IPlugin>();
         }
 
-        // In a real app, this would scan assemblies in a plugins folder.
-        // For this example, we'll manually add known plugins or use reflection on loaded assemblies.
-        public void DiscoverPlugins()
+        public void DiscoverPlugins(string pluginFolderPath)
         {
-            _logCallback("Discovering plugins...");
-            // Simplified discovery: Manually add the SamplePlugin for this example.
-            // Or, more advanced: iterate through assemblies in the output directory.
-            // For now, we will rely on the UI project referencing plugins directly or loading them explicitly.
+            _logCallback($"Discovering plugins in folder: {pluginFolderPath}");
 
-            // Example of discovering plugins via reflection from currently loaded assemblies:
-            var pluginAssemblies = AppDomain.CurrentDomain.GetAssemblies()
-                .Where(asm => !asm.IsDynamic && asm.Location.Contains("SamplePlugin")) // Crude filter
-                .ToList();
+            if (!Directory.Exists(pluginFolderPath))
+            {
+                _logCallback($"Error: Plugin folder '{pluginFolderPath}' not found.");
+                return;
+            }
 
-            foreach (var assembly in pluginAssemblies)
+            // Optional: Clear existing plugins if this is a refresh operation
+            // _plugins.Clear();
+            // _logCallback("Cleared existing plugins before discovery.");
+
+            string[] dllFiles = Directory.GetFiles(pluginFolderPath, "*.dll");
+
+            if (dllFiles.Length == 0)
+            {
+                _logCallback($"No DLLs found in plugin folder: {pluginFolderPath}");
+                return;
+            }
+
+            foreach (string dllPath in dllFiles)
             {
                 try
                 {
-                    var types = assembly.GetTypes().Where(t => typeof(IPlugin).IsAssignableFrom(t) && !t.IsInterface);
-                    foreach (var type in types)
+                    // For more advanced scenarios (e.g., unloading, versioning),
+                    // consider using AssemblyLoadContext.
+                    Assembly pluginAssembly = Assembly.LoadFrom(dllPath);
+                    var pluginTypes = pluginAssembly.GetTypes()
+                        .Where(t => typeof(IPlugin).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract);
+
+                    foreach (var type in pluginTypes)
                     {
                         try
                         {
-                            var plugin = Activator.CreateInstance(type) as IPlugin;
+                            IPlugin? plugin = Activator.CreateInstance(type) as IPlugin;
                             if (plugin != null)
                             {
-                                _plugins.Add(plugin);
-                                _logCallback($"Found plugin: {plugin.Name}");
+                                // Basic duplicate check by Name. More robust checks might involve version or full type name.
+                                if (!_plugins.Any(p => p.Name == plugin.Name))
+                                {
+                                    _plugins.Add(plugin);
+                                    plugin.Load(); // Call Load after adding
+                                    _logCallback($"Successfully loaded plugin: {plugin.Name} from {Path.GetFileName(dllPath)}");
+                                }
+                                else
+                                {
+                                    _logCallback($"Plugin '{plugin.Name}' from {Path.GetFileName(dllPath)} already loaded. Skipping.");
+                                }
                             }
                         }
                         catch (Exception ex)
                         {
-                            _logCallback($"Error instantiating plugin '{type.FullName}': {ex.Message}");
+                            _logCallback($"Error instantiating plugin type '{type.FullName}' from {Path.GetFileName(dllPath)}: {ex.Message}");
                         }
                     }
                 }
-                catch (ReflectionTypeLoadException ex)
+                catch (ReflectionTypeLoadException ex) // Specifically catch this for loader exceptions
                 {
-                    var loaderMessages = ex.LoaderExceptions?.Select(e => e?.Message) ?? Enumerable.Empty<string>();
-                    _logCallback($"Error loading types from assembly '{assembly.FullName}': {string.Join(", ", loaderMessages.Where(m => m != null))}");
+                    _logCallback($"Error loading types from assembly {Path.GetFileName(dllPath)}: {ex.Message}");
+                    foreach (var loaderEx in ex.LoaderExceptions ?? Enumerable.Empty<Exception?>())
+                    {
+                        if (loaderEx != null) _logCallback($"  LoaderException: {loaderEx.Message}");
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _logCallback($"Error inspecting assembly '{assembly.FullName}': {ex.Message}");
+                    _logCallback($"Error loading assembly {Path.GetFileName(dllPath)}: {ex.Message}");
                 }
             }
+
             if (!_plugins.Any())
             {
-                _logCallback("No plugins discovered via reflection. Ensure SamplePlugin is referenced and built.");
-            }
-        }
-
-        public void AddPlugin(IPlugin plugin) // Allow manual addition for simplicity
-        {
-            if (!_plugins.Contains(plugin))
-            {
-                _plugins.Add(plugin);
-                _logCallback($"Manually added plugin: {plugin.Name}");
-                plugin.Load();
+                _logCallback("No plugins were successfully loaded.");
             }
         }
 

@@ -1,5 +1,17 @@
 using CorePlatform;
-using SamplePlugin; // For direct instantiation in this simple example
+// using SamplePlugin; // No longer directly instantiating MyPlugin
+using System.IO;    // For Path and Directory operations
+// Ensure other necessary WinForms usings are present if this were a full file, e.g.
+// using System;
+// using System.Collections.Generic;
+// using System.ComponentModel;
+// using System.Data;
+// using System.Drawing;
+// using System.Linq;
+// using System.Text;
+// using System.Threading.Tasks;
+// using System.Windows.Forms;
+
 
 namespace WinFormsUI
 {
@@ -13,11 +25,8 @@ namespace WinFormsUI
 
         public MainForm()
         {
-            InitializeComponent();
+            InitializeComponent(); // This method is in MainForm.Designer.cs
             _pluginManager = new PluginManager(LogMessage);
-            // Manually add SamplePlugin for this example as reflection might be tricky
-            // without placing plugins in a specific directory and loading assemblies from there.
-            // _pluginManager.AddPlugin(new MyPlugin()); // Direct instantiation
         }
 
         private void LogMessage(string message)
@@ -35,13 +44,35 @@ namespace WinFormsUI
 
         private void btnLoadPlugin_Click(object sender, EventArgs e)
         {
-            LogMessage("Attempting to load plugins...");
-            // In a more complex app, you might scan a directory.
-            // For this simple example, we'll explicitly add an instance of MyPlugin.
-            // This bypasses complex assembly loading issues for a minimal example.
-            IPlugin plugin = new MyPlugin();
-            _pluginManager.AddPlugin(plugin); // Add the plugin
-            LogMessage($"Plugin '{plugin.Name}' loaded and added to PluginManager.");
+            LogMessage("Attempting to discover and load plugins...");
+
+            string pluginDirName = "Plugins";
+            // For WinForms, Application.StartupPath is common. AppDomain.CurrentDomain.BaseDirectory also works.
+            string baseDirectory = Application.StartupPath;
+            string pluginFolderPath = Path.Combine(baseDirectory, pluginDirName);
+
+            LogMessage($"Plugin directory target: {pluginFolderPath}");
+
+            if (!Directory.Exists(pluginFolderPath))
+            {
+                LogMessage($"Plugin directory '{pluginFolderPath}' does not exist. Attempting to create it.");
+                try
+                {
+                    Directory.CreateDirectory(pluginFolderPath);
+                    LogMessage($"Successfully created plugin directory: {pluginFolderPath}");
+                }
+                catch (Exception ex)
+                {
+                    LogMessage($"Error creating plugin directory '{pluginFolderPath}': {ex.Message}. Please create it manually.");
+                    return; // Stop if directory can't be created
+                }
+            }
+            else
+            {
+                LogMessage($"Plugin directory already exists: {pluginFolderPath}");
+            }
+
+            _pluginManager.DiscoverPlugins(pluginFolderPath);
             RefreshPluginList();
         }
 
@@ -49,7 +80,7 @@ namespace WinFormsUI
         {
             LogMessage("Running tests for all loaded plugins...");
             if (!_pluginManager.GetPlugins().Any()) {
-                LogMessage("No plugins are loaded. Click 'Load Sample Plugin' first.");
+                LogMessage("No plugins are loaded. Click 'Load Plugins' first."); // Adjusted message
                 return;
             }
             Task.Run(() => _pluginManager.RunPluginTests(LogMessage));
@@ -57,8 +88,15 @@ namespace WinFormsUI
 
         private void RefreshPluginList()
         {
-            // Potentially update UI with loaded plugins, not implemented in detail for this basic version
-            LogMessage($"Currently loaded plugins: {string.Join(", ", _pluginManager.GetPlugins().Select(p => p.Name))}");
+            var loadedPlugins = _pluginManager.GetPlugins();
+            if (loadedPlugins.Any())
+            {
+                LogMessage($"Currently loaded plugins: {string.Join(", ", loadedPlugins.Select(p => p.Name))}");
+            }
+            else
+            {
+                LogMessage("No plugins are currently loaded.");
+            }
         }
     }
 }
