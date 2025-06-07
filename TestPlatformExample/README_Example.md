@@ -68,5 +68,7 @@ To create your own plugin compatible with this example platform:
 
 When the "Load Plugins" button is clicked in the WinForms UI, it will scan this `Plugins` folder, load compatible DLLs, and instantiate your plugin.
 
+For a more detailed guide on plugin development in Chinese, please see [插件开发规范与要求 (Plugin Development Guide CN)](./PLUGIN_DEVELOPMENT_GUIDE_CN.md).
+
 ---
 *The solution and project files were created targeting .NET 8 due to SDK availability in the execution environment. The WinForms project (`WinFormsUI`) is included as specified but will only build and run on a Windows system with the appropriate .NET Desktop Runtime.*
