@@ -34,7 +34,12 @@ namespace WinFormsUI
         private string _currentFilePath = string.Empty;
         private bool _isDirty = false;
 
-        public ScriptEditorForm(ScriptEngine scriptEngine, PluginManager pluginManager, Action<string> mainFormLogCallback)
+        // Public properties for MainForm to access after dialog closes
+        public string? FinalScriptText { get; private set; }
+        public bool WasClosedSuccessfully { get; private set; } = false;
+
+
+        public ScriptEditorForm(ScriptEngine scriptEngine, PluginManager pluginManager, Action<string> mainFormLogCallback, string initialScriptText)
         {
             _scriptEngine = scriptEngine ?? throw new ArgumentNullException(nameof(scriptEngine));
             _pluginManager = pluginManager ?? throw new ArgumentNullException(nameof(pluginManager));
@@ -44,6 +49,14 @@ namespace WinFormsUI
             this.Text = "Script Editor";
             this.Size = new System.Drawing.Size(800, 600);
             this.StartPosition = FormStartPosition.CenterParent;
+
+            if (this.fctbScriptEditor != null)
+            {
+                this.fctbScriptEditor.Text = initialScriptText ?? string.Empty;
+                this._isDirty = false;
+                UpdateFormTitle();
+            }
+
             this.FormClosing += ScriptEditorForm_FormClosing;
         }
 
@@ -71,7 +84,7 @@ namespace WinFormsUI
             this.newToolStripMenuItem = new ToolStripMenuItem("New");
             this.newToolStripMenuItem.Click += new System.EventHandler(this.newToolStripMenuItem_Click);
             this.openToolStripMenuItem = new ToolStripMenuItem("Open...");
-            this.openToolStripMenuItem.Click += new System.EventHandler(this.openToolStripMenuItem_Click); // Wired up
+            this.openToolStripMenuItem.Click += new System.EventHandler(this.openToolStripMenuItem_Click);
             this.saveToolStripMenuItem = new ToolStripMenuItem("Save");
             this.saveToolStripMenuItem.Click += new System.EventHandler(this.saveToolStripMenuItem_Click);
             this.saveAsToolStripMenuItem = new ToolStripMenuItem("Save As...");
@@ -153,9 +166,17 @@ namespace WinFormsUI
         private void ScriptEditorForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             DialogResult proceedAction = CheckUnsavedChanges();
+
             if (proceedAction == DialogResult.Cancel)
             {
                 e.Cancel = true;
+                WasClosedSuccessfully = false;
+            }
+            else
+            {
+                e.Cancel = false;
+                FinalScriptText = this.fctbScriptEditor.Text;
+                WasClosedSuccessfully = true;
             }
         }
 

@@ -20,13 +20,13 @@ namespace WinFormsUI
 
         private void InitializeComponent()
         {
-            this.components = new System.ComponentModel.Container(); // Often added by designer for FCTB
+            this.components = new System.ComponentModel.Container();
             this.lstLog = new System.Windows.Forms.ListBox();
             this.btnRunTests = new System.Windows.Forms.Button();
             this.btnLoadPlugin = new System.Windows.Forms.Button();
             this.btnRunScript = new System.Windows.Forms.Button();
             this.fctbScriptInput = new FastColoredTextBox();
-            this.btnOpenScriptEditor = new System.Windows.Forms.Button(); // Added declaration
+            this.btnOpenScriptEditor = new System.Windows.Forms.Button();
             this.SuspendLayout();
             //
             // lstLog
@@ -37,7 +37,7 @@ namespace WinFormsUI
             this.lstLog.ItemHeight = 15;
             this.lstLog.Location = new System.Drawing.Point(12, 50);
             this.lstLog.Name = "lstLog";
-            this.lstLog.Size = new System.Drawing.Size(760, 270);
+            this.lstLog.Size = new System.Drawing.Size(760, 270); // Fixed height for top panel
             this.lstLog.TabIndex = 0;
             //
             // btnRunTests
@@ -63,7 +63,7 @@ namespace WinFormsUI
             // btnRunScript
             //
             this.btnRunScript.Location = new System.Drawing.Point(248, 12);
-            this.btnRunScript.Name = "btnRunScript";
+            this.btnRunScript.Name = "btnRunScript"; // This is the button for the MainForm's script box
             this.btnRunScript.Size = new System.Drawing.Size(112, 32);
             this.btnRunScript.TabIndex = 4;
             this.btnRunScript.Text = "Run Script";
@@ -72,11 +72,13 @@ namespace WinFormsUI
             //
             // fctbScriptInput
             //
-            this.fctbScriptInput.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.fctbScriptInput.Location = new System.Drawing.Point(12, 325);
+            this.fctbScriptInput.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
+            | System.Windows.Forms.AnchorStyles.Right))); // Anchored to all sides
+            this.fctbScriptInput.Location = new System.Drawing.Point(12, 326); // lstLog.Bottom (320) + 6 padding
             this.fctbScriptInput.Name = "fctbScriptInput";
-            this.fctbScriptInput.Size = new System.Drawing.Size(760, 100);
+             // Height: ClientSize.Height (437) - Top (326) - BottomPadding (12) = 99
+            this.fctbScriptInput.Size = new System.Drawing.Size(760, 99);
             this.fctbScriptInput.TabIndex = 3;
             this.fctbScriptInput.Language = FastColoredTextBoxNS.Language.CSharp;
             this.fctbScriptInput.Font = new System.Drawing.Font("Consolas", 9.75F);
@@ -91,10 +93,10 @@ namespace WinFormsUI
             //
             // btnOpenScriptEditor
             //
-            this.btnOpenScriptEditor.Location = new System.Drawing.Point(366, 12); // Next to btnRunScript
+            this.btnOpenScriptEditor.Location = new System.Drawing.Point(366, 12);
             this.btnOpenScriptEditor.Name = "btnOpenScriptEditor";
             this.btnOpenScriptEditor.Size = new System.Drawing.Size(120, 32);
-            this.btnOpenScriptEditor.TabIndex = 5; // Next available
+            this.btnOpenScriptEditor.TabIndex = 5;
             this.btnOpenScriptEditor.Text = "Open Script Editor";
             this.btnOpenScriptEditor.UseVisualStyleBackColor = true;
             this.btnOpenScriptEditor.Click += new System.EventHandler(this.btnOpenScriptEditor_Click);
@@ -103,10 +105,10 @@ namespace WinFormsUI
             //
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(784, 437);
+            this.ClientSize = new System.Drawing.Size(784, 437); // Height: fctbScriptInput.Top (326) + fctbScriptInput.Height (99) + Padding (12) = 437
             this.Controls.Add(this.fctbScriptInput);
             this.Controls.Add(this.btnRunScript);
-            this.Controls.Add(this.btnOpenScriptEditor); // Added to controls
+            this.Controls.Add(this.btnOpenScriptEditor);
             this.Controls.Add(this.btnLoadPlugin);
             this.Controls.Add(this.btnRunTests);
             this.Controls.Add(this.lstLog);
@@ -120,8 +122,8 @@ namespace WinFormsUI
         private System.Windows.Forms.ListBox lstLog;
         private System.Windows.Forms.Button btnRunTests;
         private System.Windows.Forms.Button btnLoadPlugin;
-        private System.Windows.Forms.Button btnRunScript;
+        private System.Windows.Forms.Button btnRunScript; // This is for the MainForm's script box
         private FastColoredTextBox fctbScriptInput;
-        private System.Windows.Forms.Button btnOpenScriptEditor; // Added declaration
+        private System.Windows.Forms.Button btnOpenScriptEditor;
     }
 }

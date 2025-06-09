@@ -24,11 +24,11 @@ namespace WinFormsUI
         {
             InitializeComponent(); // This method is in MainForm.Designer.cs
             _pluginManager = new PluginManager(LogMessage);
-            _scriptEngine = new ScriptEngine(LogMessage); // ScriptEngine's own logs also go to LogMessage
-            LogMessage("Application started. Logging initialized."); // Initial log message
+            _scriptEngine = new ScriptEngine(LogMessage);
+            LogMessage("Application started. Logging initialized.");
         }
 
-        private void LogMessage(string originalMessage) // Parameter is the raw message
+        private void LogMessage(string originalMessage)
         {
             string timestampedMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {originalMessage}";
 
@@ -167,12 +167,43 @@ namespace WinFormsUI
             if (_scriptEngine == null || _pluginManager == null)
             {
                 LogMessage("Error: Core components (ScriptEngine/PluginManager) not ready for Script Editor.");
-                MessageBox.Show("Scripting components are not initialized.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(this, "Scripting components are not initialized.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            ScriptEditorForm scriptEditor = new ScriptEditorForm(_scriptEngine, _pluginManager, LogMessage);
-            scriptEditor.Show();
+            string currentScriptOnMainForm = "";
+            if (this.fctbScriptInput != null)
+            {
+                 currentScriptOnMainForm = this.fctbScriptInput.Text;
+            }
+            else
+            {
+                LogMessage("Warning: Script input control (fctbScriptInput) not found on MainForm. Opening new script editor with empty content.");
+            }
+
+            using (ScriptEditorForm scriptEditor = new ScriptEditorForm(_scriptEngine, _pluginManager, LogMessage, currentScriptOnMainForm))
+            {
+                // scriptEditor.Owner = this; // Optional: explicitly set owner
+                DialogResult editorResult = scriptEditor.ShowDialog(this); // Show modally, passing owner
+
+                // After the ScriptEditorForm is closed
+                if (scriptEditor.WasClosedSuccessfully)
+                {
+                    if (this.fctbScriptInput != null)
+                    {
+                        this.fctbScriptInput.Text = scriptEditor.FinalScriptText ?? string.Empty;
+                        LogMessage("ScriptEditor: Content synchronized back to MainForm editor.");
+                    }
+                    else
+                    {
+                        LogMessage("Warning: Script input control (fctbScriptInput) not found on MainForm. Cannot synchronize back.");
+                    }
+                }
+                else
+                {
+                    LogMessage("ScriptEditor: Closed with cancellation or an issue, content not synchronized back.");
+                }
+            }
         }
 
         private void RefreshPluginList()
