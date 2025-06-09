@@ -49,6 +49,8 @@ This example now focuses on dynamic plugin discovery, loading, and C# scripting,
 
 This example platform now includes a basic C# scripting capability, allowing you to write and execute C# scripts to interact with loaded plugins.
 
+For a comprehensive guide on using the scripting platform, including detailed API explanations, more examples, and troubleshooting tips, please see the [C# Scripting Platform Guide](./SCRIPTING_PLATFORM_GUIDE.md).
+
 **UI Elements:**
 - A multi-line **Script Input TextBox** is provided below the log display for writing or pasting your C# scripts.
 - A **"Run Script" Button** will execute the script entered in the TextBox.

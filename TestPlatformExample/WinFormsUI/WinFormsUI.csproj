@@ -10,4 +10,8 @@
     <ProjectReference Include="..\CorePlatform\CorePlatform.csproj" />
     <!-- <ProjectReference Include="..\SamplePlugin\SamplePlugin.csproj" /> --> <!-- Removed for dynamic loading -->
   </ItemGroup>
+  <ItemGroup>
+    <!-- Trying FastColoredTextBox.Net5 -->
+    <PackageReference Include="FastColoredTextBox.Net5" Version="2.16.24" />
+  </ItemGroup>
 </Project>

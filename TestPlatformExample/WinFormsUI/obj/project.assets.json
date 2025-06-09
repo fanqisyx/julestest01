@@ -2,6 +2,18 @@
   "version": 3,
   "targets": {
     "net8.0-windows7.0": {
+      "FastColoredTextBox.Net5/2.16.26": {
+        "type": "package",
+        "compile": {
+          "lib/net5.0-windows7.0/FastColoredTextBox.dll": {}
+        },
+        "runtime": {
+          "lib/net5.0-windows7.0/FastColoredTextBox.dll": {}
+        },
+        "frameworkReferences": [
+          "Microsoft.WindowsDesktop.App.WindowsForms"
+        ]
+      },
       "Microsoft.CodeAnalysis.Analyzers/3.3.4": {
         "type": "package",
         "build": {
@@ -319,6 +331,18 @@
     }
   },
   "libraries": {
+    "FastColoredTextBox.Net5/2.16.26": {
+      "sha512": "tpeFJ0cNgO6RmEAl6M3A8wAXdycmqMk6rdZMe/DHNkQ4Yh5kgPHa8AdWp1SCxoswKm3QdQkDM7TW8mgraYjjxA==",
+      "type": "package",
+      "path": "fastcoloredtextbox.net5/2.16.26",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "fastcoloredtextbox.net5.2.16.26.nupkg.sha512",
+        "fastcoloredtextbox.net5.nuspec",
+        "lib/net5.0-windows7.0/FastColoredTextBox.dll"
+      ]
+    },
     "Microsoft.CodeAnalysis.Analyzers/3.3.4": {
       "sha512": "AxkxcPR+rheX0SmvpLVIGLhOUXAKG56a64kV9VQZ4y9gR9ZmPXnqZvHJnmwLSwzrEP6junUF11vuc+aqo5r68g==",
       "type": "package",
@@ -1322,7 +1346,8 @@
   },
   "projectFileDependencyGroups": {
     "net8.0-windows7.0": [
-      "CorePlatform >= 1.0.0"
+      "CorePlatform >= 1.0.0",
+      "FastColoredTextBox.Net5 >= 2.16.24"
     ]
   },
   "packageFolders": {
@@ -1365,6 +1390,12 @@
     "frameworks": {
       "net8.0-windows7.0": {
         "targetAlias": "net8.0-windows",
+        "dependencies": {
+          "FastColoredTextBox.Net5": {
+            "target": "Package",
+            "version": "[2.16.24, )"
+          }
+        },
         "imports": [
           "net461",
           "net462",
@@ -1384,5 +1415,17 @@
         "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/8.0.116/PortableRuntimeIdentifierGraph.json"
       }
     }
-  }
+  },
+  "logs": [
+    {
+      "code": "NU1603",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "WinFormsUI depends on FastColoredTextBox.Net5 (>= 2.16.24) but FastColoredTextBox.Net5 2.16.24 was not found. An approximate best match of FastColoredTextBox.Net5 2.16.26 was resolved.",
+      "libraryId": "FastColoredTextBox.Net5",
+      "targetGraphs": [
+        "net8.0-windows7.0"
+      ]
+    }
+  ]
 }

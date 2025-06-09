@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "ov2mmwXiBa1IWN7/uK6G5msfKYcQ+c+bq9ag3A35eLDsnoXrl5qy5nwXIuAPURXJEVGe1khP4jGUniLvcuRczg==",
+  "dgSpecHash": "sGzD/ZIjpul/q7gHCExjmKGnVuf6O+brY4KPofBuF8Kg/6ZWyyqPR7TAIyWZ09vmPGBc/n45Vb6k/fqd3MltKA==",
   "success": true,
   "projectFilePath": "/app/TestPlatformExample/WinFormsUI/WinFormsUI.csproj",
   "expectedPackageFiles": [
+    "/home/swebot/.nuget/packages/fastcoloredtextbox.net5/2.16.26/fastcoloredtextbox.net5.2.16.26.nupkg.sha512",
     "/home/swebot/.nuget/packages/microsoft.codeanalysis.analyzers/3.3.4/microsoft.codeanalysis.analyzers.3.3.4.nupkg.sha512",
     "/home/swebot/.nuget/packages/microsoft.codeanalysis.common/4.8.0/microsoft.codeanalysis.common.4.8.0.nupkg.sha512",
     "/home/swebot/.nuget/packages/microsoft.codeanalysis.csharp/4.8.0/microsoft.codeanalysis.csharp.4.8.0.nupkg.sha512",
@@ -14,5 +15,16 @@
     "/home/swebot/.nuget/packages/system.reflection.metadata/7.0.0/system.reflection.metadata.7.0.0.nupkg.sha512",
     "/home/swebot/.nuget/packages/system.runtime.compilerservices.unsafe/6.0.0/system.runtime.compilerservices.unsafe.6.0.0.nupkg.sha512"
   ],
-  "logs": []
+  "logs": [
+    {
+      "code": "NU1603",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "WinFormsUI depends on FastColoredTextBox.Net5 (>= 2.16.24) but FastColoredTextBox.Net5 2.16.24 was not found. An approximate best match of FastColoredTextBox.Net5 2.16.26 was resolved.",
+      "libraryId": "FastColoredTextBox.Net5",
+      "targetGraphs": [
+        "net8.0-windows7.0"
+      ]
+    }
+  ]
 }

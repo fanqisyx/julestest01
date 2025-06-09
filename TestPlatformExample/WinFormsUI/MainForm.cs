@@ -4,6 +4,8 @@ using System;       // For EventArgs, DateTime, Action, StringSplitOptions etc.
 using System.Linq;  // For Enumerable.Any(), Enumerable.Select()
 using System.Threading.Tasks; // For Task
 using System.Windows.Forms; // For Form, ListBox, Button, Application, MessageBox etc.
+using FastColoredTextBoxNS; // Added for FastColoredTextBox control
+
 // Note: Some of these might be covered by ImplicitUsings in net8.0, but explicit is clearer.
 
 namespace WinFormsUI
@@ -11,20 +13,14 @@ namespace WinFormsUI
     public partial class MainForm : Form
     {
         private PluginManager _pluginManager;
-        private ScriptEngine _scriptEngine; // Added
-        // These controls are now declared in MainForm.Designer.cs
-        // private ListBox lstLog;
-        // private Button btnRunTests;
-        // private Button btnLoadPlugin;
-        // private TextBox txtScriptInput; // Will be in Designer
-        // private Button btnRunScript; // Will be in Designer
-
+        private ScriptEngine _scriptEngine;
+        // Control fields are now solely in MainForm.Designer.cs
 
         public MainForm()
         {
             InitializeComponent(); // This method is in MainForm.Designer.cs
             _pluginManager = new PluginManager(LogMessage);
-            _scriptEngine = new ScriptEngine(LogMessage); // Instantiated
+            _scriptEngine = new ScriptEngine(LogMessage); // ScriptEngine's own logs also go to LogMessage
         }
 
         private void LogMessage(string message)
@@ -85,44 +81,58 @@ namespace WinFormsUI
 
         private async void btnRunScript_Click(object sender, EventArgs e)
         {
-            // txtScriptInput is initialized in Designer.cs
-            string scriptText = txtScriptInput.Text;
+            string scriptText = fctbScriptInput.Text;
             if (string.IsNullOrWhiteSpace(scriptText))
             {
-                LogMessage("Script input is empty.");
+                LogMessage("Script: Input is empty."); // Prefixed for clarity
                 return;
             }
 
-            LogMessage("Executing script...");
-            if (_pluginManager == null) { // Should always be initialized by constructor
+            LogMessage("Script: Executing script..."); // Prefixed for clarity
+            if (_pluginManager == null) {
                 LogMessage("Error: PluginManager not initialized.");
                 return;
             }
-            if (_scriptEngine == null) { // Should always be initialized by constructor
+            if (_scriptEngine == null) {
                 LogMessage("Error: ScriptEngine not initialized.");
                 return;
             }
 
-            // Pass LogMessage to be used by the ScriptingHost instance for this execution
+            // Pass LogMessage to be used by the ScriptingHost instance for this script execution
             ScriptExecutionResult result = await _scriptEngine.ExecuteScriptAsync(scriptText, _pluginManager, LogMessage);
 
             if (result.Success)
             {
-                LogMessage("Script executed successfully.");
+                LogMessage("Script: Executed successfully.");
                 if (result.ReturnValue != null)
                 {
-                    LogMessage($"Script returned: {result.ReturnValue}");
+                    LogMessage($"Script: ReturnValue = {result.ReturnValue}");
                 }
             }
             else
             {
-                LogMessage($"Script execution failed: {result.ErrorMessage}");
+                LogMessage("Script: Execution failed."); // General script failure message
+
                 if (result.CompilationErrors != null && result.CompilationErrors.Any())
                 {
-                    LogMessage("Compilation errors:");
+                    LogMessage("Script: Compilation Errors Reported by Engine:");
                     foreach (string error in result.CompilationErrors)
                     {
-                        LogMessage(error);
+                        // Each 'error' string from Roslyn often contains location, error code, and message.
+                        LogMessage($"  {error}"); // Indent for readability
+                    }
+                }
+                // The ScriptEngine's own log (passed via _hostLogCallback to ScriptEngine constructor)
+                // might have already logged "ScriptEngine: Compilation error: ..." or "ScriptEngine: Runtime error: ..."
+                // The result.ErrorMessage from ScriptEngine might be a more general summary.
+                // Ensure ErrorMessage is logged if it provides different info than compilation errors
+                if (!string.IsNullOrEmpty(result.ErrorMessage))
+                {
+                    // Avoid duplicating "compilation failed" if already detailed by CompilationErrors list.
+                    bool compilationAlreadyDetailed = result.CompilationErrors != null && result.CompilationErrors.Any();
+                    if (!compilationAlreadyDetailed || !result.ErrorMessage.ToLowerInvariant().Contains("compilation failed"))
+                    {
+                         LogMessage($"Script: Engine Message = {result.ErrorMessage}");
                     }
                 }
             }
