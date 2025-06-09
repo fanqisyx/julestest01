@@ -1,32 +1,30 @@
 using CorePlatform;
-// using SamplePlugin; // No longer directly instantiating MyPlugin
 using System.IO;    // For Path and Directory operations
-// Ensure other necessary WinForms usings are present if this were a full file, e.g.
-// using System;
-// using System.Collections.Generic;
-// using System.ComponentModel;
-// using System.Data;
-// using System.Drawing;
-// using System.Linq;
-// using System.Text;
-// using System.Threading.Tasks;
-// using System.Windows.Forms;
-
+using System;       // For EventArgs, DateTime, Action, StringSplitOptions etc.
+using System.Linq;  // For Enumerable.Any(), Enumerable.Select()
+using System.Threading.Tasks; // For Task
+using System.Windows.Forms; // For Form, ListBox, Button, Application, MessageBox etc.
+// Note: Some of these might be covered by ImplicitUsings in net8.0, but explicit is clearer.
 
 namespace WinFormsUI
 {
     public partial class MainForm : Form
     {
         private PluginManager _pluginManager;
-        private ListBox lstLog;
-        private Button btnRunTests;
-        private Button btnLoadPlugin;
+        private ScriptEngine _scriptEngine; // Added
+        // These controls are now declared in MainForm.Designer.cs
+        // private ListBox lstLog;
+        // private Button btnRunTests;
+        // private Button btnLoadPlugin;
+        // private TextBox txtScriptInput; // Will be in Designer
+        // private Button btnRunScript; // Will be in Designer
 
 
         public MainForm()
         {
             InitializeComponent(); // This method is in MainForm.Designer.cs
             _pluginManager = new PluginManager(LogMessage);
+            _scriptEngine = new ScriptEngine(LogMessage); // Instantiated
         }
 
         private void LogMessage(string message)
@@ -47,7 +45,6 @@ namespace WinFormsUI
             LogMessage("Attempting to discover and load plugins...");
 
             string pluginDirName = "Plugins";
-            // For WinForms, Application.StartupPath is common. AppDomain.CurrentDomain.BaseDirectory also works.
             string baseDirectory = Application.StartupPath;
             string pluginFolderPath = Path.Combine(baseDirectory, pluginDirName);
 
@@ -64,7 +61,7 @@ namespace WinFormsUI
                 catch (Exception ex)
                 {
                     LogMessage($"Error creating plugin directory '{pluginFolderPath}': {ex.Message}. Please create it manually.");
-                    return; // Stop if directory can't be created
+                    return;
                 }
             }
             else
@@ -80,10 +77,55 @@ namespace WinFormsUI
         {
             LogMessage("Running tests for all loaded plugins...");
             if (!_pluginManager.GetPlugins().Any()) {
-                LogMessage("No plugins are loaded. Click 'Load Plugins' first."); // Adjusted message
+                LogMessage("No plugins are loaded. Click 'Load Plugins' first.");
                 return;
             }
             Task.Run(() => _pluginManager.RunPluginTests(LogMessage));
+        }
+
+        private async void btnRunScript_Click(object sender, EventArgs e)
+        {
+            // txtScriptInput is initialized in Designer.cs
+            string scriptText = txtScriptInput.Text;
+            if (string.IsNullOrWhiteSpace(scriptText))
+            {
+                LogMessage("Script input is empty.");
+                return;
+            }
+
+            LogMessage("Executing script...");
+            if (_pluginManager == null) { // Should always be initialized by constructor
+                LogMessage("Error: PluginManager not initialized.");
+                return;
+            }
+            if (_scriptEngine == null) { // Should always be initialized by constructor
+                LogMessage("Error: ScriptEngine not initialized.");
+                return;
+            }
+
+            // Pass LogMessage to be used by the ScriptingHost instance for this execution
+            ScriptExecutionResult result = await _scriptEngine.ExecuteScriptAsync(scriptText, _pluginManager, LogMessage);
+
+            if (result.Success)
+            {
+                LogMessage("Script executed successfully.");
+                if (result.ReturnValue != null)
+                {
+                    LogMessage($"Script returned: {result.ReturnValue}");
+                }
+            }
+            else
+            {
+                LogMessage($"Script execution failed: {result.ErrorMessage}");
+                if (result.CompilationErrors != null && result.CompilationErrors.Any())
+                {
+                    LogMessage("Compilation errors:");
+                    foreach (string error in result.CompilationErrors)
+                    {
+                        LogMessage(error);
+                    }
+                }
+            }
         }
 
         private void RefreshPluginList()

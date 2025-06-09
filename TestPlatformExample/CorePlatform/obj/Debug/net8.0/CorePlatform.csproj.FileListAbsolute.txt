@@ -10,3 +10,4 @@
 /app/TestPlatformExample/CorePlatform/obj/Debug/net8.0/refint/CorePlatform.dll
 /app/TestPlatformExample/CorePlatform/obj/Debug/net8.0/CorePlatform.pdb
 /app/TestPlatformExample/CorePlatform/obj/Debug/net8.0/ref/CorePlatform.dll
+/app/TestPlatformExample/CorePlatform/obj/Debug/net8.0/CorePlatform.csproj.AssemblyReference.cache

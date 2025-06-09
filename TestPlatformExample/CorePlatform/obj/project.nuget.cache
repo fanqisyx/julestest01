@@ -1,8 +1,18 @@
 {
   "version": 2,
-  "dgSpecHash": "zDlKYJOQ0KyYdb8sGoDBz+oUvMLQFx3AgqwFQt/deELLprw4vxWUHnVCQLClm87L/8h2nMzcvEoxc2R70TIPhg==",
+  "dgSpecHash": "pLky2mNUPJ+BCzy0nhdHj8VqUNgzQmN+GezF0VGtai78YuCK2597cPSB/R+I7LfKC4jiKSCiEVQBtPHhNhwq2A==",
   "success": true,
   "projectFilePath": "/app/TestPlatformExample/CorePlatform/CorePlatform.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "/home/swebot/.nuget/packages/microsoft.codeanalysis.analyzers/3.3.4/microsoft.codeanalysis.analyzers.3.3.4.nupkg.sha512",
+    "/home/swebot/.nuget/packages/microsoft.codeanalysis.common/4.8.0/microsoft.codeanalysis.common.4.8.0.nupkg.sha512",
+    "/home/swebot/.nuget/packages/microsoft.codeanalysis.csharp/4.8.0/microsoft.codeanalysis.csharp.4.8.0.nupkg.sha512",
+    "/home/swebot/.nuget/packages/microsoft.codeanalysis.csharp.scripting/4.8.0/microsoft.codeanalysis.csharp.scripting.4.8.0.nupkg.sha512",
+    "/home/swebot/.nuget/packages/microsoft.codeanalysis.scripting.common/4.8.0/microsoft.codeanalysis.scripting.common.4.8.0.nupkg.sha512",
+    "/home/swebot/.nuget/packages/microsoft.csharp/4.7.0/microsoft.csharp.4.7.0.nupkg.sha512",
+    "/home/swebot/.nuget/packages/system.collections.immutable/7.0.0/system.collections.immutable.7.0.0.nupkg.sha512",
+    "/home/swebot/.nuget/packages/system.reflection.metadata/7.0.0/system.reflection.metadata.7.0.0.nupkg.sha512",
+    "/home/swebot/.nuget/packages/system.runtime.compilerservices.unsafe/6.0.0/system.runtime.compilerservices.unsafe.6.0.0.nupkg.sha512"
+  ],
   "logs": []
 }

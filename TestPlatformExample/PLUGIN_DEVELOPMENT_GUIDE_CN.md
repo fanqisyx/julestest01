@@ -119,5 +119,85 @@ namespace MyCustomPlugin
 
 启动 `WinFormsUI` 应用程序。点击 "Load Plugins" (或类似) 按钮。应用程序的日志区域应显示您的插件被发现和加载的消息。随后，您可以通过 "Run Plugin Tests" 按钮来执行插件的 `RunTest` 方法。
 
+## 7. 使插件支持脚本调用 (Making Plugins Scriptable)
+
+平台提供了一个C#脚本执行引擎，允许用户通过编写脚本与已加载的插件进行交互。为了使您的插件能够被脚本调用，您需要实现 `CorePlatform.IScriptablePlugin` 接口。
+
+**7.1 `IScriptablePlugin` 接口**
+
+`IScriptablePlugin` 接口继承自 `IPlugin`，并额外定义了一个方法：
+
+```csharp
+namespace CorePlatform
+{
+    public interface IScriptablePlugin : IPlugin
+    {
+        /// <summary>
+        /// 执行从脚本传递过来的命令。
+        /// </summary>
+        /// <param name="commandName">要执行的命令的名称。</param>
+        /// <param name="parameters">命令所需的参数，通常为字符串形式。</param>
+        /// <returns>命令执行结果的字符串，或 null (如果没有直接的字符串结果)。</returns>
+        string? ExecuteScriptCommand(string commandName, string parameters);
+    }
+}
+```
+
+**7.2 实现 `ExecuteScriptCommand` 方法**
+
+在您的插件类中，除了实现 `IPlugin` 的成员外，还需实现 `ExecuteScriptCommand` 方法。
+
+```csharp
+// (确保您的插件类声明实现了 IScriptablePlugin)
+// public class MyPlugin : IScriptablePlugin
+// { ... }
+
+public string? ExecuteScriptCommand(string commandName, string parameters)
+{
+    // 插件内部日志，可选
+    Console.WriteLine($"插件 '{this.Name}': 收到脚本命令 '{commandName}'，参数: '{parameters}'");
+
+    switch (commandName.ToLowerInvariant()) // 命令名称不区分大小写
+    {
+        case "getstatus":
+            // 实现获取状态的逻辑
+            return "状态: 一切正常";
+        case "startevent":
+            // 实现启动某个事件的逻辑，参数可能包含事件配置
+            // bool success = PerformStartEvent(parameters);
+            // return success ? "事件已启动" : "错误: 启动事件失败";
+            return $"命令 'startevent' (参数: '{parameters}') 已被调用。请在插件中实现具体逻辑。";
+        case "echoparam":
+            return $"插件 '{this.Name}' 回显参数: {parameters}";
+        // 在此添加更多命令分支
+        default:
+            return $"错误: 插件 '{this.Name}' 不支持命令 '{commandName}'。";
+    }
+}
+```
+
+**7.3 脚本如何调用**
+
+在C#脚本中，可以通过全局的 `Host` 对象（`ScriptingHost` 类的实例）调用插件的命令：
+
+```csharp
+// 脚本示例:
+// Host.Log("正在尝试执行插件命令...");
+// string pluginName = "您的插件名称"; // 替换为插件的 Name 属性值
+// string result = Host.ExecutePluginCommand(pluginName, "getstatus", "");
+// Host.Log("GetStatus 命令结果: " + result);
+
+// string customResult = Host.ExecutePluginCommand(pluginName, "startevent", "param1=value1;param2=value2");
+// Host.Log("Startevent 命令结果: " + customResult);
+```
+
+**7.4 `ExecuteScriptCommand` 实现建议**
+
+*   **命令分发**: 使用 `switch` 语句（通常基于 `commandName.ToLowerInvariant()`）来处理不同的命令。
+*   **参数解析**: `parameters` 是一个字符串。您的插件需要负责解析这个字符串以获取有用的数据。可以约定简单的格式（如逗号分隔），或者对于复杂数据，推荐使用JSON字符串，然后在插件中进行反序列化。
+*   **返回值**: 方法返回 `string?`。这个字符串会传递回脚本，并可能由脚本记录或处理。确保返回有意义的信息，包括成功状态或错误详情。
+*   **错误处理**: 在方法内部实现健壮的错误处理。如果命令执行失败，返回描述错误的字符串。
+*   **日志**: 虽然 `ScriptingHost` 会记录命令的调用和返回，插件内部也可以使用 `Console.WriteLine` 或其他日志机制进行更详细的诊断。
+
 ---
 遵循这些步骤，您应该能够成功开发并集成新的插件到 `TestPlatformExample` 平台中。
