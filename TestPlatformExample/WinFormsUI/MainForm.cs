@@ -1,10 +1,11 @@
 using CorePlatform;
-using System.IO;    // For Path and Directory operations
+using System.IO;    // For Path, Directory, File, Environment
 using System;       // For EventArgs, DateTime, Action, StringSplitOptions etc.
 using System.Linq;  // For Enumerable.Any(), Enumerable.Select()
 using System.Threading.Tasks; // For Task
 using System.Windows.Forms; // For Form, ListBox, Button, Application, MessageBox etc.
 using FastColoredTextBoxNS; // Added for FastColoredTextBox control
+using System.Diagnostics; // For Debug.WriteLine
 
 // Note: Some of these might be covered by ImplicitUsings in net8.0, but explicit is clearer.
 
@@ -14,25 +15,54 @@ namespace WinFormsUI
     {
         private PluginManager _pluginManager;
         private ScriptEngine _scriptEngine;
-        // Control fields are now solely in MainForm.Designer.cs
+
+        // Static members for file logging
+        private static readonly string _logFilePath = Path.Combine(Application.StartupPath, "TestPlatformExample.log");
+        private static readonly object _logFileLock = new object();
 
         public MainForm()
         {
             InitializeComponent(); // This method is in MainForm.Designer.cs
             _pluginManager = new PluginManager(LogMessage);
             _scriptEngine = new ScriptEngine(LogMessage); // ScriptEngine's own logs also go to LogMessage
+            LogMessage("Application started. Logging initialized."); // Initial log message
         }
 
-        private void LogMessage(string message)
+        private void LogMessage(string originalMessage) // Parameter is the raw message
         {
+            string timestampedMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {originalMessage}";
+
             if (lstLog.InvokeRequired)
             {
-                lstLog.Invoke(new Action<string>(LogMessage), message);
+                lstLog.BeginInvoke(new Action(() =>
+                {
+                    lstLog.Items.Add(timestampedMessage);
+                    if (lstLog.Items.Count > 0)
+                    {
+                        lstLog.TopIndex = lstLog.Items.Count - 1;
+                    }
+                }));
             }
             else
             {
-                lstLog.Items.Add($"[{DateTime.Now:HH:mm:ss}] {message}");
-                lstLog.TopIndex = lstLog.Items.Count - 1; // Auto-scroll
+                lstLog.Items.Add(timestampedMessage);
+                if (lstLog.Items.Count > 0)
+                {
+                    lstLog.TopIndex = lstLog.Items.Count - 1;
+                }
+            }
+
+            try
+            {
+                lock (_logFileLock)
+                {
+                    File.AppendAllText(_logFilePath, timestampedMessage + Environment.NewLine);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Failed to write to log file '{_logFilePath}': {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Failed to write to log file '{_logFilePath}': {ex.Message}");
             }
         }
 
@@ -84,11 +114,11 @@ namespace WinFormsUI
             string scriptText = fctbScriptInput.Text;
             if (string.IsNullOrWhiteSpace(scriptText))
             {
-                LogMessage("Script: Input is empty."); // Prefixed for clarity
+                LogMessage("Script: Input is empty.");
                 return;
             }
 
-            LogMessage("Script: Executing script..."); // Prefixed for clarity
+            LogMessage("Script: Executing script...");
             if (_pluginManager == null) {
                 LogMessage("Error: PluginManager not initialized.");
                 return;
@@ -98,7 +128,6 @@ namespace WinFormsUI
                 return;
             }
 
-            // Pass LogMessage to be used by the ScriptingHost instance for this script execution
             ScriptExecutionResult result = await _scriptEngine.ExecuteScriptAsync(scriptText, _pluginManager, LogMessage);
 
             if (result.Success)
@@ -111,24 +140,19 @@ namespace WinFormsUI
             }
             else
             {
-                LogMessage("Script: Execution failed."); // General script failure message
+                LogMessage("Script: Execution failed.");
 
                 if (result.CompilationErrors != null && result.CompilationErrors.Any())
                 {
                     LogMessage("Script: Compilation Errors Reported by Engine:");
                     foreach (string error in result.CompilationErrors)
                     {
-                        // Each 'error' string from Roslyn often contains location, error code, and message.
-                        LogMessage($"  {error}"); // Indent for readability
+                        LogMessage($"  {error}");
                     }
                 }
-                // The ScriptEngine's own log (passed via _hostLogCallback to ScriptEngine constructor)
-                // might have already logged "ScriptEngine: Compilation error: ..." or "ScriptEngine: Runtime error: ..."
-                // The result.ErrorMessage from ScriptEngine might be a more general summary.
-                // Ensure ErrorMessage is logged if it provides different info than compilation errors
+
                 if (!string.IsNullOrEmpty(result.ErrorMessage))
                 {
-                    // Avoid duplicating "compilation failed" if already detailed by CompilationErrors list.
                     bool compilationAlreadyDetailed = result.CompilationErrors != null && result.CompilationErrors.Any();
                     if (!compilationAlreadyDetailed || !result.ErrorMessage.ToLowerInvariant().Contains("compilation failed"))
                     {
@@ -136,6 +160,19 @@ namespace WinFormsUI
                     }
                 }
             }
+        }
+
+        private void btnOpenScriptEditor_Click(object sender, EventArgs e)
+        {
+            if (_scriptEngine == null || _pluginManager == null)
+            {
+                LogMessage("Error: Core components (ScriptEngine/PluginManager) not ready for Script Editor.");
+                MessageBox.Show("Scripting components are not initialized.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            ScriptEditorForm scriptEditor = new ScriptEditorForm(_scriptEngine, _pluginManager, LogMessage);
+            scriptEditor.Show();
         }
 
         private void RefreshPluginList()

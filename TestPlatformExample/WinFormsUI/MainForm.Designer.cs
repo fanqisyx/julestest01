@@ -24,9 +24,9 @@ namespace WinFormsUI
             this.lstLog = new System.Windows.Forms.ListBox();
             this.btnRunTests = new System.Windows.Forms.Button();
             this.btnLoadPlugin = new System.Windows.Forms.Button();
-            // this.txtScriptInput = new System.Windows.Forms.TextBox(); // Removed
             this.btnRunScript = new System.Windows.Forms.Button();
-            this.fctbScriptInput = new FastColoredTextBox(); // Added: Assuming class name is FastColoredTextBox
+            this.fctbScriptInput = new FastColoredTextBox();
+            this.btnOpenScriptEditor = new System.Windows.Forms.Button(); // Added declaration
             this.SuspendLayout();
             //
             // lstLog
@@ -65,7 +65,7 @@ namespace WinFormsUI
             this.btnRunScript.Location = new System.Drawing.Point(248, 12);
             this.btnRunScript.Name = "btnRunScript";
             this.btnRunScript.Size = new System.Drawing.Size(112, 32);
-            this.btnRunScript.TabIndex = 4; // TabIndex 3 will be for fctbScriptInput
+            this.btnRunScript.TabIndex = 4;
             this.btnRunScript.Text = "Run Script";
             this.btnRunScript.UseVisualStyleBackColor = true;
             this.btnRunScript.Click += new System.EventHandler(this.btnRunScript_Click);
@@ -77,26 +77,36 @@ namespace WinFormsUI
             this.fctbScriptInput.Location = new System.Drawing.Point(12, 325);
             this.fctbScriptInput.Name = "fctbScriptInput";
             this.fctbScriptInput.Size = new System.Drawing.Size(760, 100);
-            this.fctbScriptInput.TabIndex = 3; // Correct TabIndex
-            this.fctbScriptInput.Language = FastColoredTextBoxNS.Language.CSharp; // Using fully qualified for safety here, or use 'using' at top
+            this.fctbScriptInput.TabIndex = 3;
+            this.fctbScriptInput.Language = FastColoredTextBoxNS.Language.CSharp;
             this.fctbScriptInput.Font = new System.Drawing.Font("Consolas", 9.75F);
             this.fctbScriptInput.LineNumberColor = System.Drawing.Color.Teal;
             this.fctbScriptInput.ShowLineNumbers = true;
             this.fctbScriptInput.IndentBackColor = System.Drawing.Color.WhiteSmoke;
-            this.fctbScriptInput.ServiceLinesColor = System.Drawing.Color.Silver; // Example property
-            this.fctbScriptInput.CaretColor = System.Drawing.Color.Red; // Example property
-            this.fctbScriptInput.ShowFoldingLines = true; // Example property
-            this.fctbScriptInput.AutoCompleteBrackets = true; // Example property
-            this.fctbScriptInput.AutoScrollMinSize = new System.Drawing.Size(2, 14); // Default, adjust if needed
+            this.fctbScriptInput.ServiceLinesColor = System.Drawing.Color.Silver;
+            this.fctbScriptInput.CaretColor = System.Drawing.Color.Red;
+            this.fctbScriptInput.ShowFoldingLines = true;
+            this.fctbScriptInput.AutoCompleteBrackets = true;
+            this.fctbScriptInput.AutoScrollMinSize = new System.Drawing.Size(2, 14);
+            //
+            // btnOpenScriptEditor
+            //
+            this.btnOpenScriptEditor.Location = new System.Drawing.Point(366, 12); // Next to btnRunScript
+            this.btnOpenScriptEditor.Name = "btnOpenScriptEditor";
+            this.btnOpenScriptEditor.Size = new System.Drawing.Size(120, 32);
+            this.btnOpenScriptEditor.TabIndex = 5; // Next available
+            this.btnOpenScriptEditor.Text = "Open Script Editor";
+            this.btnOpenScriptEditor.UseVisualStyleBackColor = true;
+            this.btnOpenScriptEditor.Click += new System.EventHandler(this.btnOpenScriptEditor_Click);
             //
             // MainForm
             //
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(784, 437);
-            this.Controls.Add(this.fctbScriptInput);   // Added fctbScriptInput
-            // this.Controls.Add(this.txtScriptInput); // Removed txtScriptInput
+            this.Controls.Add(this.fctbScriptInput);
             this.Controls.Add(this.btnRunScript);
+            this.Controls.Add(this.btnOpenScriptEditor); // Added to controls
             this.Controls.Add(this.btnLoadPlugin);
             this.Controls.Add(this.btnRunTests);
             this.Controls.Add(this.lstLog);
@@ -110,8 +120,8 @@ namespace WinFormsUI
         private System.Windows.Forms.ListBox lstLog;
         private System.Windows.Forms.Button btnRunTests;
         private System.Windows.Forms.Button btnLoadPlugin;
-        // private System.Windows.Forms.TextBox txtScriptInput; // Removed
         private System.Windows.Forms.Button btnRunScript;
-        private FastColoredTextBox fctbScriptInput; // Added - assuming class name is FastColoredTextBox
+        private FastColoredTextBox fctbScriptInput;
+        private System.Windows.Forms.Button btnOpenScriptEditor; // Added declaration
     }
 }
