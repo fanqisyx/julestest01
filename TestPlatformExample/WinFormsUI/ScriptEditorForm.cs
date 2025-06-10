@@ -6,11 +6,14 @@ using System.IO; // For Path, File, Directory
 using System.Threading.Tasks; // For async/await and Task.Run
 using System.Linq; // For .Any() on Diagnostics list
 using System.Collections.Generic; // For List<string>
+using System.ComponentModel; // For IContainer
 
 namespace WinFormsUI
 {
     public partial class ScriptEditorForm : Form
     {
+        private System.ComponentModel.IContainer components = null; // Added field declaration
+
         private FastColoredTextBox fctbScriptEditor;
         private MenuStrip menuStripMain;
         private ToolStripMenuItem fileToolStripMenuItem;
@@ -49,7 +52,9 @@ namespace WinFormsUI
             _pluginManager = pluginManager ?? throw new ArgumentNullException(nameof(pluginManager));
             _mainFormLogCallback = mainFormLogCallback ?? throw new ArgumentNullException(nameof(mainFormLogCallback));
 
-            SetupControlsManually();
+            // InitializeComponent(); // This would be called if using a .Designer.cs file
+            SetupControlsManually(); // Our manual setup method
+
             this.Text = "Script Editor";
             this.Size = new System.Drawing.Size(800, 600);
             this.StartPosition = FormStartPosition.CenterParent;
@@ -64,9 +69,22 @@ namespace WinFormsUI
             this.FormClosing += ScriptEditorForm_FormClosing;
         }
 
+        /// <summary>
+        /// Clean up any resources being used.
+        /// </summary>
+        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
+        protected override void Dispose(bool disposing) // Added standard Dispose method
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
         private void SetupControlsManually()
         {
-            this.components = new System.ComponentModel.Container();
+            this.components = new System.ComponentModel.Container(); // This line is fine once 'components' is declared
 
             this.fctbScriptEditor = new FastColoredTextBox();
             this.fctbScriptEditor.Dock = DockStyle.Fill;
@@ -198,7 +216,7 @@ namespace WinFormsUI
                         this.statusLabel.Text = $"Script saved: {Path.GetFileName(_currentFilePath)}";
                         _mainFormLogCallback?.Invoke($"ScriptEditor: Script saved to '{_currentFilePath}'.");
                         return true;
-                    } catch (Exception ex) { /* ... error handling ... */
+                    } catch (Exception ex) {
                         this.statusLabel.Text = "Error saving script.";
                         _mainFormLogCallback?.Invoke($"ScriptEditor: Error saving to '{sfd.FileName}': {ex.Message}");
                         MessageBox.Show(this, $"Error saving: {ex.Message}", "Save Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -215,7 +233,7 @@ namespace WinFormsUI
                 this.statusLabel.Text = $"Script saved: {Path.GetFileName(_currentFilePath)}";
                 _mainFormLogCallback?.Invoke($"ScriptEditor: Script saved to '{_currentFilePath}'.");
                 return true;
-            } catch (Exception ex) { /* ... error handling ... */
+            } catch (Exception ex) {
                 this.statusLabel.Text = "Error saving script.";
                 _mainFormLogCallback?.Invoke($"ScriptEditor: Error saving to '{_currentFilePath}': {ex.Message}");
                 MessageBox.Show(this, $"Error saving: {ex.Message}", "Save Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -303,6 +321,7 @@ namespace WinFormsUI
             helpForm.Show();
         }
 
-        private void InitializeComponent() { /* Manual setup done in SetupControlsManually */ }
+        // Removed empty InitializeComponent() as it's not called and not standard for fully manual forms
+        // private void InitializeComponent() { /* Manual setup done in SetupControlsManually */ }
     }
 }

@@ -6,29 +6,43 @@ using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
+using System.IO; // For Path
+using System.Text; // For StringBuilder
+using System.Text.RegularExpressions; // For Regex
+using System.Net.Http; // For HttpClient
+// using System.Threading.Tasks; // Already present
+using System.Xml.Linq; // For XDocument
+using System.Diagnostics; // For Stopwatch
 
 namespace CorePlatform
 {
     public class ScriptEngine
     {
-        // private ScriptOptions? _scriptOptions; // Removed field
         private Action<string> _hostLogCallback;
 
         public ScriptEngine(Action<string> hostLogCallback)
         {
             _hostLogCallback = hostLogCallback;
-            // InitializeScriptOptions(); // Call removed from constructor
         }
 
         private ScriptOptions CreateScriptOptions(List<string>? customNamespaces, List<string>? customAssemblyRefs)
         {
             _hostLogCallback?.Invoke("ScriptEngine: Creating ScriptOptions...");
-            var defaultReferences = new List<Assembly>
+
+            var defaultAssemblies = new List<Assembly>
             {
-                Assembly.GetAssembly(typeof(object))!,
-                Assembly.GetAssembly(typeof(System.Linq.Enumerable))!,
-                Assembly.GetAssembly(typeof(IPlugin))!,
-                Assembly.GetAssembly(typeof(ScriptingHost))!
+                Assembly.GetAssembly(typeof(object))!,              // System.Private.CoreLib or mscorlib
+                Assembly.GetAssembly(typeof(System.Linq.Enumerable))!, // System.Linq.Expressions / System.Core
+                Assembly.GetAssembly(typeof(IPlugin))!,              // CorePlatform.dll
+                Assembly.GetAssembly(typeof(ScriptingHost))!,        // CorePlatform.dll
+                Assembly.GetAssembly(typeof(ScriptGlobals))!,        // CorePlatform.dll
+                Assembly.GetAssembly(typeof(System.IO.Path))!,       // System.Runtime.Extensions / System.IO.FileSystem
+                Assembly.GetAssembly(typeof(System.Text.StringBuilder))!,// System.Runtime / System.Text.Primitives
+                Assembly.GetAssembly(typeof(System.Text.RegularExpressions.Regex))!, // System.Text.RegularExpressions
+                Assembly.GetAssembly(typeof(System.Net.Http.HttpClient))!, // System.Net.Http
+                Assembly.GetAssembly(typeof(System.Threading.Tasks.Task))!,// System.Threading.Tasks / System.Runtime
+                Assembly.GetAssembly(typeof(System.Xml.Linq.XDocument))!, // System.Xml.Linq
+                Assembly.GetAssembly(typeof(System.Diagnostics.Stopwatch))!// System.Diagnostics.TraceSource / System.Diagnostics.Stopwatch
             };
 
             Assembly? formsAssembly = null;
@@ -39,11 +53,11 @@ namespace CorePlatform
                 if (formsAssembly != null)
                 {
                     _hostLogCallback?.Invoke($"ScriptEngine: Found System.Windows.Forms assembly: {formsAssembly.FullName}");
-                    defaultReferences.Add(formsAssembly);
+                    defaultAssemblies.Add(formsAssembly);
                 }
                 else
                 {
-                    _hostLogCallback?.Invoke("ScriptEngine: System.Windows.Forms assembly not found in AppDomain. Will not be added to script references by default.");
+                    _hostLogCallback?.Invoke("ScriptEngine: System.Windows.Forms assembly not found in AppDomain. WinForms types will not be available to scripts unless explicitly referenced by user.");
                 }
             }
             catch (Exception ex)
@@ -51,45 +65,48 @@ namespace CorePlatform
                 _hostLogCallback?.Invoke($"ScriptEngine: Error trying to locate System.Windows.Forms assembly: {ex.Message}");
             }
 
-            var finalReferencesForOptions = new List<MetadataReference>();
-            finalReferencesForOptions.AddRange(defaultReferences.Select(asm => MetadataReference.CreateFromFile(asm.Location)));
-
-            // Add custom assembly references (by name or path)
-            var customReferencePaths = new List<string>();
+            var customRefsList = new List<string>();
             if (customAssemblyRefs != null)
             {
-                customReferencePaths.AddRange(customAssemblyRefs.Where(r => !string.IsNullOrWhiteSpace(r)));
-                _hostLogCallback?.Invoke($"ScriptEngine: Adding {customReferencePaths.Count} custom assembly references by path/name.");
-                // Note: Roslyn's AddReferences can also take assembly objects directly,
-                // but for paths/names from user input, this is typical.
-                // If these are GAC assemblies, just the name is fine. Otherwise, full paths are needed.
-                // For simplicity, we're not resolving GAC names to paths here.
+                customRefsList.AddRange(customAssemblyRefs.Where(r => !string.IsNullOrWhiteSpace(r)));
+                _hostLogCallback?.Invoke($"ScriptEngine: Adding {customRefsList.Count} custom assembly references by path/name.");
             }
-            // Add custom references as MetadataReference objects if they are paths.
-            // For simplicity, the ScriptOptions.AddReferences(IEnumerable<string>) overload is used later,
-            // which can handle assembly display names or full paths.
 
-            var imports = new List<string>
+            var defaultImports = new List<string>
             {
                 "System",
+                "System.IO",
+                "System.Text",
+                "System.Text.RegularExpressions",
                 "System.Linq",
                 "System.Collections.Generic",
+                "System.Net.Http",
+                "System.Threading.Tasks",
+                "System.Xml.Linq",
+                "System.Diagnostics",
                 "CorePlatform"
             };
+
             if (formsAssembly != null)
             {
-                imports.Add("System.Windows.Forms");
+                defaultImports.Add("System.Windows.Forms");
             }
+
+            var finalImports = new List<string>(defaultImports);
             if (customNamespaces != null)
             {
-                imports.AddRange(customNamespaces.Where(ns => !string.IsNullOrWhiteSpace(ns)));
+                finalImports.AddRange(customNamespaces.Where(ns => !string.IsNullOrWhiteSpace(ns)));
                 _hostLogCallback?.Invoke($"ScriptEngine: Adding {customNamespaces.Count(ns => !string.IsNullOrWhiteSpace(ns))} custom namespaces.");
             }
 
+            // Log final effective references and imports for debugging
+            // _hostLogCallback?.Invoke($"ScriptEngine: Effective Assemblies: {string.Join(", ", defaultAssemblies.Select(a => a.GetName().Name).Concat(customRefsList).Distinct())}");
+            // _hostLogCallback?.Invoke($"ScriptEngine: Effective Imports: {string.Join(", ", finalImports.Distinct())}");
+
             var options = ScriptOptions.Default
-                .AddReferences(defaultReferences) // Add loaded Assembly objects
-                .AddReferences(customReferencePaths) // Add string names/paths for others
-                .AddImports(imports.Distinct());
+                .AddReferences(defaultAssemblies.Distinct())
+                .AddReferences(customRefsList.Distinct())
+                .AddImports(finalImports.Distinct());
 
             _hostLogCallback?.Invoke("ScriptEngine: ScriptOptions created.");
             return options;
@@ -108,12 +125,13 @@ namespace CorePlatform
             }
 
             ScriptOptions currentOptions = CreateScriptOptions(customNamespaces, customAssemblyRefs);
-            var scriptHost = new ScriptingHost(pluginManager, uiLogCallbackForScriptHost);
+            var actualScriptHost = new ScriptingHost(pluginManager, uiLogCallbackForScriptHost);
+            var scriptGlobals = new ScriptGlobals(actualScriptHost);
 
             try
             {
-                _hostLogCallback?.Invoke("ScriptEngine: Executing script with current options...");
-                var scriptState = await CSharpScript.RunAsync(scriptText, currentOptions, globals: scriptHost, globalsType: typeof(ScriptingHost));
+                _hostLogCallback?.Invoke("ScriptEngine: Executing script with ScriptGlobals (Host property)...");
+                var scriptState = await CSharpScript.RunAsync(scriptText, currentOptions, globals: scriptGlobals, globalsType: typeof(ScriptGlobals));
                 _hostLogCallback?.Invoke("ScriptEngine: Script execution completed.");
 
                 if (scriptState.ReturnValue != null)
@@ -155,7 +173,7 @@ namespace CorePlatform
             {
                 _hostLogCallback?.Invoke("ScriptEngine: Checking script syntax with current options...");
 
-                var script = CSharpScript.Create(scriptText, currentOptions, globalsType: typeof(ScriptingHost));
+                var script = CSharpScript.Create(scriptText, currentOptions, globalsType: typeof(ScriptGlobals));
                 var compilation = script.GetCompilation();
                 var diagnostics = compilation.GetDiagnostics();
 

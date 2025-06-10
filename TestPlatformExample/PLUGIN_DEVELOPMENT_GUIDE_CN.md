@@ -178,17 +178,34 @@ public string? ExecuteScriptCommand(string commandName, string parameters)
 
 **7.3 脚本如何调用**
 
-在C#脚本中，可以通过全局的 `Host` 对象（`ScriptingHost` 类的实例）调用插件的命令：
+在C#脚本中，可以通过全局的 `Host` 对象（`ScriptingHost` 类的实例）调用插件的命令。由于脚本引擎现在默认包含更多常用的 .NET 命名空间 (如 `System.IO`, `System.Text`, `System.Collections.Generic` 等) 和程序集引用，您可以直接在脚本中使用这些功能，而无需额外配置。
+
+`Host` 对象提供的主要方法有：
+- `Host.Log("消息")` 或 `Host.print("消息")`: 向主界面日志区域输出消息。
+- `Host.ListPluginNames()`: 列出当前所有已加载插件的名称。
+- `Host.ExecutePluginCommand("插件名称", "命令名称", "参数字符串")`: 执行指定插件的命令。
 
 ```csharp
 // 脚本示例:
-// Host.Log("正在尝试执行插件命令...");
-// string pluginName = "您的插件名称"; // 替换为插件的 Name 属性值
-// string result = Host.ExecutePluginCommand(pluginName, "getstatus", "");
-// Host.Log("GetStatus 命令结果: " + result);
+Host.print("尝试执行插件 'Sample Test Plugin' 的 'GetStatus' 命令...");
+// Host.Log() 同样可用。 Host.print() 是一个方便的别名。
 
-// string customResult = Host.ExecutePluginCommand(pluginName, "startevent", "param1=value1;param2=value2");
-// Host.Log("Startevent 命令结果: " + customResult);
+string pluginName = "Sample Test Plugin"; // 确保此名称与插件的 Name 属性一致
+string? status = Host.ExecutePluginCommand(pluginName, "GetStatus", null); // GetStatus 命令不需要参数
+
+if (status != null) {
+    Host.print($"'{pluginName}' 的状态: {status}");
+} else {
+    Host.print($"未能获取 '{pluginName}' 的状态，或命令没有返回值。");
+}
+
+// 调用另一个命令，例如 SamplePlugin 中的 "Echo"
+string? echoParams = "来自脚本的你好！";
+string? echoResponse = Host.ExecutePluginCommand(pluginName, "Echo", echoParams);
+Host.print($"'{pluginName}' Echo 命令的回应: {echoResponse ?? "null"}");
+
+// 如果需要使用 MessageBox (System.Windows.Forms 命名空间已默认导入，如果宿主是WinForms程序)
+// MessageBox.Show("这是一个来自脚本的提示框!", "脚本提示");
 ```
 
 **7.4 `ExecuteScriptCommand` 实现建议**

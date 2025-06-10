@@ -3,11 +3,15 @@ using System.Drawing;
 using System.Windows.Forms;
 using FastColoredTextBoxNS; // For fctbExampleViewer
 using System.IO; // For File and Path operations
+using System.ComponentModel; // For IContainer
+using System.Collections.Generic; // For Tuple
 
 namespace WinFormsUI
 {
     public partial class HelpForm : Form
     {
+        private System.ComponentModel.IContainer components = null;
+
         private SplitContainer splitContainerMain;
         private RichTextBox rtbGuideViewer;
 
@@ -16,17 +20,83 @@ namespace WinFormsUI
         private FastColoredTextBox fctbExampleViewer;
         private Button btnCopyScript;
 
+        private static readonly Tuple<string, string>[] ExampleScripts = new Tuple<string, string>[]
+        {
+            Tuple.Create("1. Basic Logging",
+                "Host.Log(\"Hello from a C# script!\");\n" +
+                "Host.Log(\"This is another log entry.\");\n" +
+                "int a = 10;\n" +
+                "int b = 20;\n" +
+                "Host.Log($\"The sum of {a} and {b} is {a + b}.\");\n" +
+                "// Script return value (last expression) will be a+b\n" +
+                "a+b;"),
+
+            Tuple.Create("2. List Loaded Plugins",
+                "Host.Log(\"Attempting to list loaded plugins...\");\n" +
+                "string[] pluginNames = Host.ListPluginNames();\n" +
+                "if (pluginNames.Length == 0) {\n" +
+                "    Host.Log(\"No plugins are currently loaded.\");\n" +
+                "} else {\n" +
+                "    Host.Log(\"Currently loaded plugins are:\");\n" +
+                "    foreach (string name in pluginNames) {\n" +
+                "        Host.Log($\"- {name}\");\n" +
+                "    }\n" +
+                "}"),
+
+            Tuple.Create("3. Execute Command on SamplePlugin",
+                "// Ensure 'Sample Test Plugin' is loaded first via MainForm's 'Load Plugins' button.\n" +
+                "string targetPlugin = \"Sample Test Plugin\"; // Plugin's Name property\n\n" +
+                "Host.Log($\"Attempting to execute 'GetStatus' on '{targetPlugin}'...\");\n" +
+                "string? statusResult = Host.ExecutePluginCommand(targetPlugin, \"GetStatus\", null);\n" +
+                "Host.Log($\"'{targetPlugin}' GetStatus result: {(statusResult ?? \"null\")}\");\n\n" +
+                "Host.Log($\"Attempting to execute 'Echo' on '{targetPlugin}'...\");\n" +
+                "string? echoResult = Host.ExecutePluginCommand(targetPlugin, \"Echo\", \"Hello from Script Example 3!\"); \n" +
+                "Host.Log($\"'{targetPlugin}' Echo result: {(echoResult ?? \"null\")}\");\n\n" +
+                "Host.Log($\"Attempting to execute 'Add' on '{targetPlugin}'...\");\n" +
+                "string? addResult = Host.ExecutePluginCommand(targetPlugin, \"Add\", \"123,456\"); \n" +
+                "Host.Log($\"'{targetPlugin}' Add result: {(addResult ?? \"null\")}\");"),
+
+            Tuple.Create("4. Handle Plugin Not Found",
+                "string nonExistentPlugin = \"FakePlugin123\";\n" +
+                "Host.Log($\"Attempting to execute a command on a non-existent plugin: '{nonExistentPlugin}'...\");\n" +
+                "string? result = Host.ExecutePluginCommand(nonExistentPlugin, \"AnyCommand\", \"anyparams\");\n" +
+                "Host.Log($\"Result for '{nonExistentPlugin}': {(result ?? \"null\")}\"); \n" +
+                "// Expected: Result will contain an error message."),
+
+            Tuple.Create("5. Use MessageBox (WinForms)",
+                "Host.Log(\"Attempting to show a MessageBox.\");\n" +
+                "// System.Windows.Forms should be available due to ScriptEngine defaults if host is WinForms.\n" +
+                "DialogResult dr = MessageBox.Show(\"Hello from script!\", \"Script Info\", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);\n" +
+                "Host.Log(\"MessageBox result: \" + dr.ToString());\n" +
+                "if (dr == DialogResult.OK) {\n" +
+                "    Host.Log(\"User clicked OK.\");\n" +
+                "} else {\n" +
+                "    Host.Log(\"User clicked Cancel or closed the dialog.\");\n" +
+                "}")
+        };
+
         public HelpForm()
         {
             InitializeComponentManual();
             this.Text = "Scripting Help & Examples";
             this.Size = new System.Drawing.Size(900, 700);
             this.StartPosition = FormStartPosition.CenterParent;
-            LoadGuideContent(); // Call to load the guide
+            LoadGuideContent();
+            PopulateExampleScripts();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
         }
 
         private void InitializeComponentManual()
         {
+            this.components = new System.ComponentModel.Container();
             this.SuspendLayout();
 
             this.splitContainerMain = new System.Windows.Forms.SplitContainer();
@@ -49,6 +119,7 @@ namespace WinFormsUI
             this.tvExamples.Name = "tvExamples";
             this.tvExamples.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.tvExamples.BorderStyle = BorderStyle.FixedSingle;
+            this.tvExamples.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.tvExamples_AfterSelect);
 
             this.fctbExampleViewer = new FastColoredTextBox();
             this.fctbExampleViewer.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -65,6 +136,7 @@ namespace WinFormsUI
             this.btnCopyScript.Text = "Copy Script to Clipboard";
             this.btnCopyScript.Size = new System.Drawing.Size(100, 28);
             this.btnCopyScript.UseVisualStyleBackColor = true;
+            this.btnCopyScript.Click += new System.EventHandler(this.btnCopyScript_Click); // Wired up
 
             this.splitContainerExamples.Dock = System.Windows.Forms.DockStyle.Fill;
             this.splitContainerExamples.Name = "splitContainerExamples";
@@ -77,7 +149,7 @@ namespace WinFormsUI
             this.splitContainerMain.Dock = System.Windows.Forms.DockStyle.Fill;
             this.splitContainerMain.Name = "splitContainerMain";
             this.splitContainerMain.Orientation = System.Windows.Forms.Orientation.Horizontal;
-            this.splitContainerMain.SplitterDistance = 300; // Adjusted for potentially more guide text
+            this.splitContainerMain.SplitterDistance = 300;
             this.splitContainerMain.Panel1.Controls.Add(this.rtbGuideViewer);
             this.splitContainerMain.Panel2.Controls.Add(this.splitContainerExamples);
 
@@ -102,50 +174,74 @@ namespace WinFormsUI
             string guideFileName = "SCRIPTING_PLATFORM_GUIDE.md";
             string guideFilePath = "";
             bool fileFound = false;
-
-            // Path assumptions for finding the guide:
-            // 1. Same directory as executable (common for deployed files)
             string path1 = Path.Combine(Application.StartupPath, guideFileName);
-            // 2. In the project root of TestPlatformExample (common when running from IDE, StartupPath is .../WinFormsUI/bin/Debug/net8.0)
-            //    So, StartupPath -> WinFormsUI/bin/Debug/net8.0 -> ../../../ -> TestPlatformExample/
             string path2 = Path.Combine(Application.StartupPath, "..", "..", "..", guideFileName);
-            // 3. One level up from executable (less common, but for shallow build structures)
             string path3 = Path.Combine(Application.StartupPath, "..", guideFileName);
 
+            if (File.Exists(path1)) { guideFilePath = path1; fileFound = true; }
+            else if (File.Exists(path2)) { guideFilePath = path2; fileFound = true; }
+            else if (File.Exists(path3)) { guideFilePath = path3; fileFound = true; }
 
-            if (File.Exists(path1))
-            {
-                guideFilePath = path1;
-                fileFound = true;
-            }
-            else if (File.Exists(path2))
-            {
-                guideFilePath = path2;
-                fileFound = true;
-            }
-            else if (File.Exists(path3))
-            {
-                 guideFilePath = path3;
-                 fileFound = true;
-            }
-
-            try
-            {
-                if (fileFound)
-                {
-                    this.rtbGuideViewer.Text = File.ReadAllText(guideFilePath);
-                    // For basic Markdown display in RichTextBox, this is plain text.
-                    // For formatted Markdown, a library or more complex parsing would be needed.
-                    // This subtask implies loading the raw Markdown text.
-                }
-                else
-                {
-                    this.rtbGuideViewer.Text = $"Error: Could not find '{guideFileName}'.\nChecked paths:\n1. {path1}\n2. {path2}\n3. {path3}\n\nPlease ensure the guide file is in the correct location.";
-                }
-            }
-            catch (Exception ex)
-            {
+            try {
+                if (fileFound) { this.rtbGuideViewer.Text = File.ReadAllText(guideFilePath); }
+                else { this.rtbGuideViewer.Text = $"Error: Could not find '{guideFileName}'.\nChecked paths:\n1. {path1}\n2. {path2}\n3. {path3}\n\nPlease ensure the guide file is in the correct location."; }
+            } catch (Exception ex) {
                 this.rtbGuideViewer.Text = $"Error loading scripting guide '{guideFilePath}': {ex.Message}";
+            }
+        }
+
+        private void PopulateExampleScripts()
+        {
+            this.tvExamples.BeginUpdate();
+            this.tvExamples.Nodes.Clear();
+            foreach (var scriptTuple in ExampleScripts)
+            {
+                TreeNode node = new TreeNode(scriptTuple.Item1);
+                node.Tag = scriptTuple.Item2;
+                this.tvExamples.Nodes.Add(node);
+            }
+            this.tvExamples.EndUpdate();
+            if (this.tvExamples.Nodes.Count > 0)
+            {
+                this.tvExamples.SelectedNode = this.tvExamples.Nodes[0];
+            }
+            else
+            {
+                this.fctbExampleViewer.Text = "// No examples loaded.";
+            }
+        }
+
+        private void tvExamples_AfterSelect(object sender, TreeViewEventArgs e)
+        {
+            if (e.Node != null && e.Node.Tag is string scriptCode)
+            {
+                this.fctbExampleViewer.Text = scriptCode;
+                this.fctbExampleViewer.ClearUndo();
+            }
+            else
+            {
+                this.fctbExampleViewer.Text = "// Please select an example from the list.";
+            }
+        }
+
+        private void btnCopyScript_Click(object sender, EventArgs e)
+        {
+            string scriptToCopy = this.fctbExampleViewer.Text;
+            if (!string.IsNullOrEmpty(scriptToCopy))
+            {
+                try
+                {
+                    Clipboard.SetText(scriptToCopy);
+                    // Optionally, provide feedback to the user. For example:
+                    // MessageBox.Show(this, "Script copied to clipboard!", "Copied", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    Console.WriteLine("HelpForm: Script copied to clipboard."); // For debugging
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"HelpForm: Error copying script to clipboard: {ex.Message}");
+                    // Optionally, inform the user of the error:
+                    // MessageBox.Show(this, "Could not copy script to clipboard.\n" + ex.Message, "Copy Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
     }

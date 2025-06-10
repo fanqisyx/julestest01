@@ -8,7 +8,7 @@ The platform now supports dynamic loading of plugins from a designated `Plugins`
 
 - **CorePlatform**: A class library containing the `IPlugin` interface, `IScriptablePlugin` interface, `PluginManager`, `ScriptEngine`, and `ScriptingHost`.
 - **SamplePlugin**: A class library (`SamplePlugin.dll`) that implements `IScriptablePlugin`. This serves as an example of a plugin that can be dynamically loaded and scripted.
-- **WinFormsUI**: A Windows Forms application that acts as the host. It uses `PluginManager` to load plugins and `ScriptEngine` to execute C# scripts.
+- **WinFormsUI**: A Windows Forms application that acts as the host. It uses `PluginManager` to load plugins and `ScriptEngine` to execute C# scripts. It includes a main form with a basic script input area and a more advanced pop-up Script Editor.
 
 ## How to Build and Run
 
@@ -37,51 +37,60 @@ The platform now supports dynamic loading of plugins from a designated `Plugins`
 
 ## Functionality
 
-- The main window has a "Load Plugins" button, a "Run Plugin Tests" button, a "Run Script" button, and a script input area.
-- **Load Plugins**: Clicking this button triggers the `PluginManager` to scan the `Plugins` subdirectory (within the application's execution directory) for DLLs. It attempts to load assemblies, find types implementing `IPlugin`, instantiate them, and call their `Load()` method.
-- **Run Plugin Tests**: Iterates through successfully loaded plugins and executes their `RunTest` method.
-- **Script Input & Execution**: Users can type C# script code into the text area and click "Run Script". The `ScriptEngine` executes this script, providing a `Host` object for interaction.
-- Log messages from the UI, `PluginManager`, plugins, and scripts are displayed in the list box.
+- The main window has a "Load Plugins" button, a "Run Plugin Tests" button, a "Run Script" button (for the main form's quick script area), an "Open Script Editor" button, and a script input area.
+- **Load Plugins**: Triggers `PluginManager` to scan the `Plugins` folder for DLLs, load them, and instantiate `IPlugin` implementations.
+- **Run Plugin Tests**: Executes `RunTest` on all loaded plugins.
+- **Script Input & Execution**:
+    - Users can type C# scripts into the main form's text area and click its "Run Script" button.
+    - The "Open Script Editor" button launches a separate window with advanced editing features (syntax highlighting, file operations, syntax checking, script settings). Scripts run from this editor use its current text and settings.
+- Log messages from all operations are displayed in the main list box.
 
-This example now focuses on dynamic plugin discovery, loading, and C# scripting, core aspects of modular and extensible platforms.
+This example now focuses on dynamic plugin discovery, loading, and C# scripting with enhanced editor and environment customization features.
 
 ## C# Scripting
 
-This example platform now includes a basic C# scripting capability, allowing you to write and execute C# scripts to interact with loaded plugins.
+This example platform now includes a C# scripting capability, allowing you to write and execute C# scripts to interact with loaded plugins. Scripts now have more common .NET features available by default (e.g., from `System.IO`, `System.Text`, `System.Windows.Forms` like `MessageBox`).
 
 For a comprehensive guide on using the scripting platform, including detailed API explanations, more examples, and troubleshooting tips, please see the [C# Scripting Platform Guide](./SCRIPTING_PLATFORM_GUIDE.md).
 
 **UI Elements:**
-- A multi-line **Script Input TextBox** is provided below the log display for writing or pasting your C# scripts.
-- A **"Run Script" Button** will execute the script entered in the TextBox.
-- Script output, return values, and errors will be displayed in the main log ListBox.
+- **MainForm Script Area**: A multi-line text box for quick scripts, with its own "Run Script" button.
+- **"Open Script Editor" Button**: Launches the `ScriptEditorForm`.
+- **ScriptEditorForm**: Provides a `FastColoredTextBox` for advanced script editing, along with menus for:
+    - File operations (New, Open, Save, Save As).
+    - Script execution ("Run Script", "Check Syntax").
+    - **Script Settings**: Allows customization of namespaces and assembly references for the script.
+    - Help (opens the "Scripting Help & Examples" window).
+- **Log Display (MainForm)**: All script output, return values, and errors are displayed here.
+- **Help Window**: Launched from the Script Editor's Help menu, it displays the detailed scripting guide and copyable example scripts.
 
 **Scripting API (`Host` Object):**
 Within your C# scripts, a global object named `Host` (of type `CorePlatform.ScriptingHost`) is available. It provides the following methods:
 - `void Log(string message)`: Logs a message to the main UI log.
+- `void print(object? message)`: An alias for `Log`, converting the object to a string.
 - `string[] ListPluginNames()`: Returns an array of names of all currently loaded plugins.
-- `string? ExecutePluginCommand(string pluginName, string commandName, string parameters)`: Executes a command on a specified plugin. The plugin must implement the `IScriptablePlugin` interface. `commandName` is a string identifying the action, and `parameters` is a string containing any data for the command.
+- `string? ExecutePluginCommand(string pluginName, string commandName, string parameters)`: Executes a command on a specified plugin (must implement `IScriptablePlugin`).
 
 **Making Plugins Scriptable:**
-For a plugin to be controllable by scripts using `Host.ExecutePluginCommand`, it must implement the `CorePlatform.IScriptablePlugin` interface and its `ExecuteScriptCommand` method. See the "Plugin Development Requirements" section below (and the detailed Chinese guide) for more information. The `SamplePlugin` has been updated to be scriptable.
+For a plugin to be controllable by scripts using `Host.ExecutePluginCommand`, it must implement `CorePlatform.IScriptablePlugin`. See the "Plugin Development Requirements" section and the linked guides for details. The `SamplePlugin` is an example.
 
-**Example Script:**
+**Example Script (can be run from MainForm or ScriptEditorForm):**
 ```csharp
 // Ensure "Load Plugins" has been clicked first to load SamplePlugin
-Host.Log("Script: Listing loaded plugins...");
+Host.print("Script: Listing loaded plugins..."); // Using print
 string[] plugins = Host.ListPluginNames();
 if (plugins.Contains("Sample Test Plugin")) {
-    Host.Log("Script: Found Sample Test Plugin.");
+    Host.print("Script: Found Sample Test Plugin.");
     string status = Host.ExecutePluginCommand("Sample Test Plugin", "GetStatus", "");
-    Host.Log("Script: SamplePlugin GetStatus result: " + status);
+    Host.print("Script: SamplePlugin GetStatus result: " + status);
 
     string echo = Host.ExecutePluginCommand("Sample Test Plugin", "Echo", "Hello from Script!");
-    Host.Log("Script: SamplePlugin Echo result: " + echo);
+    Host.print("Script: SamplePlugin Echo result: " + echo);
 
     string sum = Host.ExecutePluginCommand("Sample Test Plugin", "Add", "25,17");
-    Host.Log("Script: SamplePlugin Add result: " + sum);
+    Host.print("Script: SamplePlugin Add result: " + sum);
 } else {
-    Host.Log("Script: Sample Test Plugin not found. Ensure it's loaded.");
+    Host.print("Script: Sample Test Plugin not found. Ensure it's loaded.");
 }
 ```
 
@@ -89,27 +98,23 @@ if (plugins.Contains("Sample Test Plugin")) {
 
 To create your own plugin compatible with this example platform:
 
-1.  **Create a .NET Class Library Project**: It's recommended to use .NET 8, consistent with this example.
-2.  **Add a Project Reference to `CorePlatform.csproj`**: Your plugin project will need to reference the `CorePlatform` project (or its output `CorePlatform.dll`) to access the `IPlugin` interface and `IScriptablePlugin` if you want scripting support.
+1.  **Create a .NET Class Library Project**: Recommended: .NET 8.
+2.  **Reference `CorePlatform.csproj`**: Needed for `IPlugin` and `IScriptablePlugin`.
     ```xml
-    <!-- Example for your .csproj -->
     <ItemGroup>
       <ProjectReference Include="..\CorePlatform\CorePlatform.csproj" />
-      <!-- Adjust path as necessary if your plugin is outside the TestPlatformExample solution structure -->
     </ItemGroup>
     ```
-    Alternatively, you can distribute `CorePlatform.dll` and reference it directly as a DLL. If you do this, ensure `CorePlatform.dll` is available for your plugin at runtime (see Deployment step).
-3.  **Implement `CorePlatform.IPlugin` (and optionally `IScriptablePlugin`)**: Create a public class in your library that implements these interfaces.
-4.  **Build your Plugin**: Compile your project to produce a DLL (e.g., `YourPlugin.dll`).
+3.  **Implement `CorePlatform.IPlugin` (and `IScriptablePlugin` for scriptability)**.
+4.  **Build your Plugin DLL**.
 5.  **Deployment**:
-    *   Locate the output directory of the `WinFormsUI` application (e.g., `WinFormsUI/bin/Debug/net8.0/` or wherever `WinFormsUI.exe` is).
-    *   Inside this directory, create a folder named `Plugins`.
-    *   Copy your plugin's DLL (e.g., `YourPlugin.dll`) into this `Plugins` folder.
-    *   **Crucially**, also ensure `CorePlatform.dll` is present in this `Plugins` folder alongside your plugin's DLL. If your plugin project references `CorePlatform` as a project reference, `CorePlatform.dll` is typically copied to your plugin's output directory automatically, so you can just copy both `YourPlugin.dll` and `CorePlatform.dll` from your plugin's output into the `WinFormsUI/Plugins` folder.
+    *   Place your plugin DLL and `CorePlatform.dll` in the `Plugins` folder of `WinFormsUI`'s output directory.
 
-When the "Load Plugins" button is clicked in the WinForms UI, it will scan this `Plugins` folder, load compatible DLLs, and instantiate your plugin. If your plugin implements `IScriptablePlugin`, its `ExecuteScriptCommand` method can be called from scripts.
+When "Load Plugins" is clicked, your plugin will be loaded. If scriptable, `Host.ExecutePluginCommand` can call it. You can customize the script environment (add namespaces/assemblies) via "Script -> Script Settings..." in the Script Editor.
 
-For a more detailed guide on plugin development in Chinese, please see [插件开发规范与要求 (Plugin Development Guide CN)](./PLUGIN_DEVELOPMENT_GUIDE_CN.md).
+For more details:
+- [C# Scripting Platform Guide](./SCRIPTING_PLATFORM_GUIDE.md) (English)
+- [插件开发规范与要求 (Plugin Development Guide CN)](./PLUGIN_DEVELOPMENT_GUIDE_CN.md) (Chinese)
 
 ---
 *The solution and project files were created targeting .NET 8 due to SDK availability in the execution environment. The WinForms project (`WinFormsUI`) is included as specified but will only build and run on a Windows system with the appropriate .NET Desktop Runtime.*
