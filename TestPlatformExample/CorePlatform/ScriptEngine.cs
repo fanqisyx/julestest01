@@ -4,52 +4,116 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
-using Microsoft.CodeAnalysis; // Added for DiagnosticSeverity
-using System.Collections.Generic; // Added for List<string>
+using Microsoft.CodeAnalysis;
+using System.Collections.Generic;
 
 namespace CorePlatform
 {
     public class ScriptEngine
     {
-        private ScriptOptions? _scriptOptions;
+        // private ScriptOptions? _scriptOptions; // Removed field
         private Action<string> _hostLogCallback;
 
         public ScriptEngine(Action<string> hostLogCallback)
         {
             _hostLogCallback = hostLogCallback;
-            InitializeScriptOptions();
+            // InitializeScriptOptions(); // Call removed from constructor
         }
 
-        private void InitializeScriptOptions()
+        private ScriptOptions CreateScriptOptions(List<string>? customNamespaces, List<string>? customAssemblyRefs)
         {
-            _scriptOptions = ScriptOptions.Default
-                .AddReferences(
-                    Assembly.GetAssembly(typeof(object)),
-                    Assembly.GetAssembly(typeof(System.Linq.Enumerable)),
-                    Assembly.GetAssembly(typeof(IPlugin)),
-                    Assembly.GetAssembly(typeof(ScriptingHost))
-                )
-                .AddImports(
-                    "System",
-                    "System.Linq",
-                    "System.Collections.Generic",
-                    "CorePlatform"
-                );
+            _hostLogCallback?.Invoke("ScriptEngine: Creating ScriptOptions...");
+            var defaultReferences = new List<Assembly>
+            {
+                Assembly.GetAssembly(typeof(object))!,
+                Assembly.GetAssembly(typeof(System.Linq.Enumerable))!,
+                Assembly.GetAssembly(typeof(IPlugin))!,
+                Assembly.GetAssembly(typeof(ScriptingHost))!
+            };
+
+            Assembly? formsAssembly = null;
+            try
+            {
+                formsAssembly = AppDomain.CurrentDomain.GetAssemblies()
+                                    .FirstOrDefault(asm => asm.GetName().Name == "System.Windows.Forms");
+                if (formsAssembly != null)
+                {
+                    _hostLogCallback?.Invoke($"ScriptEngine: Found System.Windows.Forms assembly: {formsAssembly.FullName}");
+                    defaultReferences.Add(formsAssembly);
+                }
+                else
+                {
+                    _hostLogCallback?.Invoke("ScriptEngine: System.Windows.Forms assembly not found in AppDomain. Will not be added to script references by default.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _hostLogCallback?.Invoke($"ScriptEngine: Error trying to locate System.Windows.Forms assembly: {ex.Message}");
+            }
+
+            var finalReferencesForOptions = new List<MetadataReference>();
+            finalReferencesForOptions.AddRange(defaultReferences.Select(asm => MetadataReference.CreateFromFile(asm.Location)));
+
+            // Add custom assembly references (by name or path)
+            var customReferencePaths = new List<string>();
+            if (customAssemblyRefs != null)
+            {
+                customReferencePaths.AddRange(customAssemblyRefs.Where(r => !string.IsNullOrWhiteSpace(r)));
+                _hostLogCallback?.Invoke($"ScriptEngine: Adding {customReferencePaths.Count} custom assembly references by path/name.");
+                // Note: Roslyn's AddReferences can also take assembly objects directly,
+                // but for paths/names from user input, this is typical.
+                // If these are GAC assemblies, just the name is fine. Otherwise, full paths are needed.
+                // For simplicity, we're not resolving GAC names to paths here.
+            }
+            // Add custom references as MetadataReference objects if they are paths.
+            // For simplicity, the ScriptOptions.AddReferences(IEnumerable<string>) overload is used later,
+            // which can handle assembly display names or full paths.
+
+            var imports = new List<string>
+            {
+                "System",
+                "System.Linq",
+                "System.Collections.Generic",
+                "CorePlatform"
+            };
+            if (formsAssembly != null)
+            {
+                imports.Add("System.Windows.Forms");
+            }
+            if (customNamespaces != null)
+            {
+                imports.AddRange(customNamespaces.Where(ns => !string.IsNullOrWhiteSpace(ns)));
+                _hostLogCallback?.Invoke($"ScriptEngine: Adding {customNamespaces.Count(ns => !string.IsNullOrWhiteSpace(ns))} custom namespaces.");
+            }
+
+            var options = ScriptOptions.Default
+                .AddReferences(defaultReferences) // Add loaded Assembly objects
+                .AddReferences(customReferencePaths) // Add string names/paths for others
+                .AddImports(imports.Distinct());
+
+            _hostLogCallback?.Invoke("ScriptEngine: ScriptOptions created.");
+            return options;
         }
 
-        public async Task<ScriptExecutionResult> ExecuteScriptAsync(string scriptText, PluginManager pluginManager, Action<string> uiLogCallbackForScriptHost)
+        public async Task<ScriptExecutionResult> ExecuteScriptAsync(
+            string scriptText,
+            PluginManager pluginManager,
+            Action<string> uiLogCallbackForScriptHost,
+            List<string>? customNamespaces,
+            List<string>? customAssemblyRefs)
         {
             if (string.IsNullOrWhiteSpace(scriptText))
             {
                 return new ScriptExecutionResult { Success = false, ErrorMessage = "Script text cannot be empty." };
             }
 
+            ScriptOptions currentOptions = CreateScriptOptions(customNamespaces, customAssemblyRefs);
             var scriptHost = new ScriptingHost(pluginManager, uiLogCallbackForScriptHost);
 
             try
             {
-                _hostLogCallback?.Invoke("ScriptEngine: Executing script...");
-                var scriptState = await CSharpScript.RunAsync(scriptText, _scriptOptions, globals: scriptHost, globalsType: typeof(ScriptingHost));
+                _hostLogCallback?.Invoke("ScriptEngine: Executing script with current options...");
+                var scriptState = await CSharpScript.RunAsync(scriptText, currentOptions, globals: scriptHost, globalsType: typeof(ScriptingHost));
                 _hostLogCallback?.Invoke("ScriptEngine: Script execution completed.");
 
                 if (scriptState.ReturnValue != null)
@@ -73,30 +137,27 @@ namespace CorePlatform
             }
         }
 
-        public ScriptCompilationCheckResult CheckSyntax(string scriptText) // Changed to synchronous
+        public ScriptCompilationCheckResult CheckSyntax(
+            string scriptText,
+            List<string>? customNamespaces,
+            List<string>? customAssemblyRefs)
         {
             var result = new ScriptCompilationCheckResult();
             if (string.IsNullOrWhiteSpace(scriptText))
             {
-                // An empty script has no syntax errors.
                 result.Success = true;
                 return result;
             }
 
+            ScriptOptions currentOptions = CreateScriptOptions(customNamespaces, customAssemblyRefs);
+
             try
             {
-                _hostLogCallback?.Invoke("ScriptEngine: Checking script syntax...");
-                if (_scriptOptions == null)
-                {
-                    _hostLogCallback?.Invoke("ScriptEngine Error: ScriptOptions not initialized!");
-                    result.Diagnostics.Add("Engine Error: ScriptOptions not initialized.");
-                    result.Success = false;
-                    return result;
-                }
+                _hostLogCallback?.Invoke("ScriptEngine: Checking script syntax with current options...");
 
-                var script = CSharpScript.Create(scriptText, _scriptOptions, globalsType: typeof(ScriptingHost));
+                var script = CSharpScript.Create(scriptText, currentOptions, globalsType: typeof(ScriptingHost));
                 var compilation = script.GetCompilation();
-                var diagnostics = compilation.GetDiagnostics(); // This is an ImmutableArray<Diagnostic>
+                var diagnostics = compilation.GetDiagnostics();
 
                 result.Success = !diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error);
                 foreach (var diagnostic in diagnostics)
@@ -133,10 +194,8 @@ namespace CorePlatform
 
     public class ScriptCompilationCheckResult
     {
-        public bool Success { get; set; } // True if no errors (warnings might still exist)
+        public bool Success { get; set; }
         public List<string> Diagnostics { get; set; } = new List<string>();
-        // Helper property to explicitly check if any diagnostic string contains "error"
-        // This can be more robust if Diagnostic objects were stored, but string list is used here.
         public bool HasErrors => Diagnostics.Any(d => d.ToLowerInvariant().Contains("error cs") || d.StartsWith("error "));
     }
 }

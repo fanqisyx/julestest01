@@ -62,5 +62,10 @@ namespace CorePlatform
             // Prefix to distinguish script logs from other system logs if necessary
             _logCallback?.Invoke($"Script> {message}");
         }
+
+        public void print(object? message) // Changed to object? for flexibility
+        {
+            this.Log(message?.ToString() ?? string.Empty);
+        }
     }
 }
