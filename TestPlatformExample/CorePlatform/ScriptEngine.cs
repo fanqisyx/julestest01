@@ -14,8 +14,19 @@ using System.Net.Http; // For HttpClient
 using System.Xml.Linq; // For XDocument
 using System.Diagnostics; // For Stopwatch
 
+// IronPython specific usings
+using IronPython.Hosting;
+using Microsoft.Scripting.Hosting; // For ScriptScope, ScriptEngine (IronPython's)
+using Microsoft.Scripting;       // For SourceCodeKind, SyntaxErrorException
+
 namespace CorePlatform
 {
+    public enum ScriptLanguage
+    {
+        CSharp,
+        Python
+    }
+
     public class ScriptEngine
     {
         private Action<string> _hostLogCallback;
@@ -25,9 +36,9 @@ namespace CorePlatform
             _hostLogCallback = hostLogCallback;
         }
 
-        private ScriptOptions CreateScriptOptions(List<string>? customNamespaces, List<string>? customAssemblyRefs)
+        private ScriptOptions CreateCSharpScriptOptions(List<string>? customNamespaces, List<string>? customAssemblyRefs)
         {
-            _hostLogCallback?.Invoke("ScriptEngine: Creating ScriptOptions...");
+            _hostLogCallback?.Invoke("ScriptEngine: Creating C# ScriptOptions...");
 
             var defaultAssemblies = new List<Assembly>
             {
@@ -114,51 +125,107 @@ namespace CorePlatform
 
         public async Task<ScriptExecutionResult> ExecuteScriptAsync(
             string scriptText,
+            ScriptLanguage language, // New parameter
             PluginManager pluginManager,
             Action<string> uiLogCallbackForScriptHost,
-            List<string>? customNamespaces,
-            List<string>? customAssemblyRefs)
+            List<string>? customNamespaces, // Primarily for C#
+            List<string>? customAssemblyRefs) // Primarily for C#
         {
             if (string.IsNullOrWhiteSpace(scriptText))
             {
                 return new ScriptExecutionResult { Success = false, ErrorMessage = "Script text cannot be empty." };
             }
 
-            ScriptOptions currentOptions = CreateScriptOptions(customNamespaces, customAssemblyRefs);
-            var actualScriptHost = new ScriptingHost(pluginManager, uiLogCallbackForScriptHost);
-            var scriptGlobals = new ScriptGlobals(actualScriptHost);
-
-            try
+            if (language == ScriptLanguage.CSharp)
             {
-                _hostLogCallback?.Invoke("ScriptEngine: Executing script with ScriptGlobals (Host property)...");
-                var scriptState = await CSharpScript.RunAsync(scriptText, currentOptions, globals: scriptGlobals, globalsType: typeof(ScriptGlobals));
-                _hostLogCallback?.Invoke("ScriptEngine: Script execution completed.");
-
-                if (scriptState.ReturnValue != null)
+                ScriptOptions csharpOptions = CreateCSharpScriptOptions(customNamespaces, customAssemblyRefs);
+                var actualScriptHostForCSharp = new ScriptingHost(pluginManager, uiLogCallbackForScriptHost);
+                var scriptGlobals = new ScriptGlobals(actualScriptHostForCSharp);
+                try
                 {
-                    _hostLogCallback?.Invoke($"ScriptEngine: Script returned value: {scriptState.ReturnValue}");
-                    return new ScriptExecutionResult { Success = true, ReturnValue = scriptState.ReturnValue };
+                    _hostLogCallback?.Invoke("ScriptEngine: Executing C# script...");
+                    var scriptState = await CSharpScript.RunAsync(scriptText, csharpOptions, globals: scriptGlobals, globalsType: typeof(ScriptGlobals));
+                    _hostLogCallback?.Invoke("ScriptEngine: C# Script execution completed.");
+
+                    if (scriptState.ReturnValue != null)
+                    {
+                        _hostLogCallback?.Invoke($"ScriptEngine: C# Script returned value: {scriptState.ReturnValue}");
+                        return new ScriptExecutionResult { Success = true, ReturnValue = scriptState.ReturnValue };
+                    }
+                    return new ScriptExecutionResult { Success = true };
                 }
-                return new ScriptExecutionResult { Success = true };
+                catch (CompilationErrorException cex)
+                {
+                    _hostLogCallback?.Invoke($"ScriptEngine: C# Compilation error: {cex.Message}");
+                    var diagnostics = string.Join(Environment.NewLine, cex.Diagnostics.Select(d => d.ToString()));
+                    _hostLogCallback?.Invoke($"C# Diagnostics:\n{diagnostics}");
+                    return new ScriptExecutionResult { Success = false, ErrorMessage = "C# Script compilation failed.", CompilationErrors = cex.Diagnostics.Select(d => d.ToString()).ToList() };
+                }
+                catch (Exception ex)
+                {
+                    _hostLogCallback?.Invoke($"ScriptEngine: C# Runtime error: {ex.Message}");
+                    return new ScriptExecutionResult { Success = false, ErrorMessage = $"C# Script runtime error: {ex.Message}" };
+                }
             }
-            catch (CompilationErrorException cex)
+            else if (language == ScriptLanguage.Python)
             {
-                _hostLogCallback?.Invoke($"ScriptEngine: Compilation error: {cex.Message}");
-                var diagnostics = string.Join(Environment.NewLine, cex.Diagnostics.Select(d => d.ToString()));
-                _hostLogCallback?.Invoke($"Diagnostics:\n{diagnostics}");
-                return new ScriptExecutionResult { Success = false, ErrorMessage = "Script compilation failed.", CompilationErrors = cex.Diagnostics.Select(d => d.ToString()).ToList() };
+                _hostLogCallback?.Invoke("ScriptEngine: Initializing IronPython engine...");
+                var pyEngine = Python.CreateEngine();
+                var pyScope = pyEngine.CreateScope();
+
+                var actualScriptHostForPython = new ScriptingHost(pluginManager, uiLogCallbackForScriptHost);
+                pyScope.SetVariable("Host", actualScriptHostForPython);
+
+                // Example: Allow Python scripts to load CorePlatform types if needed via clr.AddReference
+                // pyEngine.Runtime.LoadAssembly(typeof(CorePlatform.IPlugin).Assembly);
+
+                try
+                {
+                    _hostLogCallback?.Invoke("ScriptEngine: Executing Python script...");
+                    ScriptSource source = pyEngine.CreateScriptSourceFromString(scriptText, SourceCodeKind.Statements);
+                    object? pythonResult = source.Execute(pyScope);
+                    _hostLogCallback?.Invoke("ScriptEngine: Python script execution completed.");
+
+                    if (pythonResult != null)
+                    {
+                        _hostLogCallback?.Invoke($"ScriptEngine: Python script returned value: {pythonResult}");
+                        return new ScriptExecutionResult { Success = true, ReturnValue = pythonResult };
+                    }
+                    return new ScriptExecutionResult { Success = true };
+                }
+                catch (SyntaxErrorException pex) // IronPython specific for syntax errors
+                {
+                    _hostLogCallback?.Invoke($"ScriptEngine: Python syntax error: {pex.Message} (Line: {pex.Line}, Column: {pex.Column})");
+                    return new ScriptExecutionResult { Success = false, ErrorMessage = $"Python syntax error: {pex.Message}", CompilationErrors = new List<string> { $"Line {pex.Line}, Column {pex.Column}: {pex.Message}" } };
+                }
+                catch (Exception ex) // General runtime errors
+                {
+                    _hostLogCallback?.Invoke($"ScriptEngine: Python runtime error: {ex.Message}");
+                    string errorMessage = $"Python runtime error: {ex.GetType().Name}: {ex.Message}";
+                    if (ex.InnerException != null) errorMessage += $" ---> {ex.InnerException.GetType().Name}: {ex.InnerException.Message}";
+
+                    var eo = pyEngine.GetService<ExceptionOperations>();
+                    if (eo != null) {
+                        string pythonStackTrace = eo.FormatException(ex);
+                        if (!string.IsNullOrEmpty(pythonStackTrace)) {
+                             _hostLogCallback?.Invoke($"ScriptEngine: Python StackTrace:\n{pythonStackTrace}");
+                             errorMessage += $"\nStackTrace:\n{pythonStackTrace}";
+                        }
+                    }
+                    return new ScriptExecutionResult { Success = false, ErrorMessage = errorMessage };
+                }
             }
-            catch (Exception ex)
+            else
             {
-                _hostLogCallback?.Invoke($"ScriptEngine: Runtime error: {ex.Message}");
-                return new ScriptExecutionResult { Success = false, ErrorMessage = $"Script runtime error: {ex.Message}" };
+                return new ScriptExecutionResult { Success = false, ErrorMessage = "Unsupported script language." };
             }
         }
 
         public ScriptCompilationCheckResult CheckSyntax(
             string scriptText,
-            List<string>? customNamespaces,
-            List<string>? customAssemblyRefs)
+            ScriptLanguage language, // New parameter
+            List<string>? customNamespaces, // Primarily for C#
+            List<string>? customAssemblyRefs) // Primarily for C#
         {
             var result = new ScriptCompilationCheckResult();
             if (string.IsNullOrWhiteSpace(scriptText))
@@ -167,35 +234,66 @@ namespace CorePlatform
                 return result;
             }
 
-            ScriptOptions currentOptions = CreateScriptOptions(customNamespaces, customAssemblyRefs);
-
-            try
+            if (language == ScriptLanguage.CSharp)
             {
-                _hostLogCallback?.Invoke("ScriptEngine: Checking script syntax with current options...");
-
-                var script = CSharpScript.Create(scriptText, currentOptions, globalsType: typeof(ScriptGlobals));
-                var compilation = script.GetCompilation();
-                var diagnostics = compilation.GetDiagnostics();
-
-                result.Success = !diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error);
-                foreach (var diagnostic in diagnostics)
+                ScriptOptions csharpOptions = CreateCSharpScriptOptions(customNamespaces, customAssemblyRefs);
+                try
                 {
-                    result.Diagnostics.Add(diagnostic.ToString());
+                    _hostLogCallback?.Invoke("ScriptEngine: Checking C# script syntax...");
+                    var script = CSharpScript.Create(scriptText, csharpOptions, globalsType: typeof(ScriptGlobals));
+                    var compilation = script.GetCompilation();
+                    var diagnostics = compilation.GetDiagnostics();
+
+                    result.Success = !diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error);
+                    foreach (var diagnostic in diagnostics)
+                    {
+                        result.Diagnostics.Add(diagnostic.ToString());
+                    }
+
+                    if (result.Success)
+                    {
+                        _hostLogCallback?.Invoke("ScriptEngine: C# Syntax check completed. No errors found.");
+                    }
+                    else
+                    {
+                        _hostLogCallback?.Invoke($"ScriptEngine: C# Syntax check completed. Errors found: {result.Diagnostics.Count(d => d.ToLowerInvariant().Contains("error"))}");
+                    }
                 }
-
-                if (result.Success)
+                catch (Exception ex)
                 {
-                    _hostLogCallback?.Invoke("ScriptEngine: Syntax check completed. No errors found.");
-                }
-                else
-                {
-                    _hostLogCallback?.Invoke($"ScriptEngine: Syntax check completed. Errors found: {result.Diagnostics.Count(d => d.ToLowerInvariant().Contains("error"))}");
+                    _hostLogCallback?.Invoke($"ScriptEngine: Error during C# syntax check: {ex.Message}");
+                    result.Diagnostics.Add($"Unexpected error during C# syntax check: {ex.Message}");
+                    result.Success = false;
                 }
             }
-            catch (Exception ex)
+            else if (language == ScriptLanguage.Python)
             {
-                _hostLogCallback?.Invoke($"ScriptEngine: Error during syntax check: {ex.Message}");
-                result.Diagnostics.Add($"Unexpected error during syntax check: {ex.Message}");
+                _hostLogCallback?.Invoke("ScriptEngine: Initializing IronPython engine for syntax check...");
+                var pyEngine = Python.CreateEngine();
+                try
+                {
+                    _hostLogCallback?.Invoke("ScriptEngine: Checking Python script syntax...");
+                    ScriptSource source = pyEngine.CreateScriptSourceFromString(scriptText, SourceCodeKind.Statements);
+                    source.Compile(); // Compile will throw on syntax error
+                    result.Success = true;
+                    _hostLogCallback?.Invoke("ScriptEngine: Python Syntax check completed. No errors found.");
+                }
+                catch (SyntaxErrorException pex)
+                {
+                    _hostLogCallback?.Invoke($"ScriptEngine: Python syntax error: {pex.Message} (Line: {pex.Line}, Column: {pex.Column})");
+                    result.Diagnostics.Add($"Line {pex.Line}, Column {pex.Column}: {pex.Message}");
+                    result.Success = false;
+                }
+                catch (Exception ex)
+                {
+                    _hostLogCallback?.Invoke($"ScriptEngine: Error during Python syntax check: {ex.Message}");
+                    result.Diagnostics.Add($"Unexpected error during Python syntax check: {ex.Message}");
+                    result.Success = false;
+                }
+            }
+            else
+            {
+                result.Diagnostics.Add("Unsupported script language for syntax check.");
                 result.Success = false;
             }
             return result;

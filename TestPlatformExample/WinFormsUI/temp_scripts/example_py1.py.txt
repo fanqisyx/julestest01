@@ -1,0 +1,3 @@
+# Python Example 1: Basic Logging
+Host.Log("Hello from Python script!")
+Host.print("This is a Python print message.")

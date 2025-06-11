@@ -32,6 +32,10 @@ namespace WinFormsUI
         private StatusStrip statusStripMain;
         private ToolStripStatusLabel statusLabel;
 
+        // New controls for language selection
+        private Label lblLanguage;
+        private ComboBox cmbLanguage;
+
         private ScriptEngine _scriptEngine;
         private PluginManager _pluginManager;
         private Action<string> _mainFormLogCallback;
@@ -84,16 +88,17 @@ namespace WinFormsUI
 
         private void SetupControlsManually()
         {
-            this.components = new System.ComponentModel.Container(); // This line is fine once 'components' is declared
+            this.components = new System.ComponentModel.Container();
 
+            // FastColoredTextBox
             this.fctbScriptEditor = new FastColoredTextBox();
             this.fctbScriptEditor.Dock = DockStyle.Fill;
-            this.fctbScriptEditor.Language = Language.CSharp;
+            this.fctbScriptEditor.Language = Language.CSharp; // Default, will be updated by cmbLanguage_SelectedIndexChanged if needed
             this.fctbScriptEditor.Font = new System.Drawing.Font("Consolas", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            // ... other FCTB properties ...
             this.fctbScriptEditor.Name = "fctbScriptEditor";
             this.fctbScriptEditor.TextChanged += (s, e) => { _isDirty = true; UpdateFormTitle(); };
 
+            // MenuStrip (will dock Top by default when set as MainMenuStrip)
             this.menuStripMain = new MenuStrip();
             this.fileToolStripMenuItem = new ToolStripMenuItem("File");
             this.newToolStripMenuItem = new ToolStripMenuItem("New");
@@ -139,11 +144,70 @@ namespace WinFormsUI
             this.statusLabel = new ToolStripStatusLabel("Ready");
             this.statusStripMain.Items.Add(this.statusLabel);
 
-            this.Controls.Add(this.fctbScriptEditor);
-            this.Controls.Add(this.menuStripMain);
-            this.Controls.Add(this.statusStripMain);
+            // Language selection controls
+            this.lblLanguage = new Label();
+            this.lblLanguage.AutoSize = true;
+            this.lblLanguage.Name = "lblLanguage";
+            this.lblLanguage.Text = "Language:";
+            this.lblLanguage.Location = new System.Drawing.Point(5, 8); // Adjusted for panel padding
+            this.lblLanguage.Anchor = AnchorStyles.Left;
+
+
+            this.cmbLanguage = new ComboBox();
+            this.cmbLanguage.DropDownStyle = ComboBoxStyle.DropDownList;
+            this.cmbLanguage.Name = "cmbLanguage";
+            this.cmbLanguage.Items.AddRange(new object[] { "C#", "Python" });
+            this.cmbLanguage.SelectedIndex = 0; // Default to C#
+            this.cmbLanguage.Location = new System.Drawing.Point(this.lblLanguage.Right + 5, 5); // Adjusted for panel padding
+            this.cmbLanguage.Size = new System.Drawing.Size(120, 21); // Standard height, wider for text
+            this.cmbLanguage.Anchor = AnchorStyles.Left;
+            this.cmbLanguage.SelectedIndexChanged += new System.EventHandler(this.cmbLanguage_SelectedIndexChanged);
+
+            // Panel for language controls (top part of contentPanel)
+            Panel languageSelectionPanel = new Panel();
+            languageSelectionPanel.Dock = DockStyle.Top;
+            languageSelectionPanel.AutoSize = true; // Make it fit its content + padding
+            languageSelectionPanel.Height = this.cmbLanguage.Height + 10; // AutoSize might not work well with just Dock.Top for height.
+            languageSelectionPanel.Padding = new Padding(0,0,0,3); // Padding at the bottom
+            languageSelectionPanel.Controls.Add(this.lblLanguage);
+            languageSelectionPanel.Controls.Add(this.cmbLanguage);
+
+            // Panel for the main content area (language selection and editor)
+            Panel contentPanel = new Panel();
+            contentPanel.Dock = DockStyle.Fill;
+
+            contentPanel.Controls.Add(this.fctbScriptEditor);      // FCTB fills remaining space
+            contentPanel.Controls.Add(languageSelectionPanel); // Language panel at the top of contentPanel
+
+            // Add controls to the Form in specific order for correct docking
+            this.Controls.Add(contentPanel);        // Fills the central area
+            this.Controls.Add(this.statusStripMain); // Docks to bottom
+            this.Controls.Add(this.menuStripMain);   // Will be set as MainMenuStrip, docking to top
 
             this.MainMenuStrip = this.menuStripMain;
+
+            // Default to C# settings enabled as C# is the default language
+            if (scriptSettingsToolStripMenuItem != null)
+            {
+                scriptSettingsToolStripMenuItem.Enabled = true;
+            }
+        }
+
+        private void cmbLanguage_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (cmbLanguage.SelectedItem.ToString() == "Python")
+            {
+                fctbScriptEditor.Language = FastColoredTextBoxNS.Language.Python;
+                scriptSettingsToolStripMenuItem.Enabled = false; // Python doesn't use these C#-specific settings
+                _mainFormLogCallback?.Invoke("ScriptEditor: Language changed to Python.");
+            }
+            else // C#
+            {
+                fctbScriptEditor.Language = FastColoredTextBoxNS.Language.CSharp;
+                scriptSettingsToolStripMenuItem.Enabled = true;
+                _mainFormLogCallback?.Invoke("ScriptEditor: Language changed to C#.");
+            }
+            // fctbScriptEditor.Refresh(); // Usually not needed
         }
 
         private void UpdateFormTitle()
@@ -249,14 +313,17 @@ namespace WinFormsUI
             if (string.IsNullOrWhiteSpace(scriptText)) { this.statusLabel.Text = "Script is empty."; _mainFormLogCallback?.Invoke("ScriptEditor: Run: Empty script."); return; }
 
             this.statusLabel.Text = "Executing script...";
-            _mainFormLogCallback?.Invoke($"ScriptEditor: Running script (settings: {this._currentScriptNamespaces.Count} ns, {this._currentScriptAssemblyRefs.Count} refs)...");
+            CorePlatform.ScriptLanguage selectedLang = (cmbLanguage.SelectedItem.ToString() == "Python") ?
+                CorePlatform.ScriptLanguage.Python : CorePlatform.ScriptLanguage.CSharp;
+            _mainFormLogCallback?.Invoke($"ScriptEditor: Running script as {selectedLang} (C# settings active if C#: {this._currentScriptNamespaces.Count} ns, {this._currentScriptAssemblyRefs.Count} refs)...");
 
             ScriptExecutionResult result = await _scriptEngine.ExecuteScriptAsync(
                 scriptText,
+                selectedLang, // New language parameter
                 _pluginManager,
                 _mainFormLogCallback,
-                _currentScriptNamespaces,
-                _currentScriptAssemblyRefs
+                _currentScriptNamespaces, // These are C#-specific, Python path in ScriptEngine should ignore them
+                _currentScriptAssemblyRefs  // These are C#-specific
             );
             this.statusLabel.Text = result.Success ? "Script execution successful." : "Script execution failed. See main log.";
         }
@@ -267,12 +334,15 @@ namespace WinFormsUI
             if (string.IsNullOrWhiteSpace(scriptText)) { this.statusLabel.Text = "Script is empty."; _mainFormLogCallback?.Invoke("ScriptEditor: Check Syntax: Empty script."); return; }
 
             this.statusLabel.Text = "Checking syntax...";
-            _mainFormLogCallback?.Invoke($"ScriptEditor: Checking syntax (settings: {this._currentScriptNamespaces.Count} ns, {this._currentScriptAssemblyRefs.Count} refs)...");
+            CorePlatform.ScriptLanguage selectedLang = (cmbLanguage.SelectedItem.ToString() == "Python") ?
+                CorePlatform.ScriptLanguage.Python : CorePlatform.ScriptLanguage.CSharp;
+            _mainFormLogCallback?.Invoke($"ScriptEditor: Checking syntax as {selectedLang} (C# settings active if C#: {this._currentScriptNamespaces.Count} ns, {this._currentScriptAssemblyRefs.Count} refs)...");
 
             ScriptCompilationCheckResult result = await Task.Run(() => _scriptEngine.CheckSyntax(
                 scriptText,
-                _currentScriptNamespaces,
-                _currentScriptAssemblyRefs
+                selectedLang, // New language parameter
+                _currentScriptNamespaces, // C#-specific
+                _currentScriptAssemblyRefs  // C#-specific
             ));
 
             if (result.Success) {

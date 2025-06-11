@@ -4,7 +4,8 @@ using System.Windows.Forms;
 using FastColoredTextBoxNS; // For fctbExampleViewer
 using System.IO; // For File and Path operations
 using System.ComponentModel; // For IContainer
-using System.Collections.Generic; // For Tuple
+using System.Collections.Generic; // For List
+using CorePlatform; // For ScriptLanguage enum
 
 namespace WinFormsUI
 {
@@ -20,20 +21,34 @@ namespace WinFormsUI
         private FastColoredTextBox fctbExampleViewer;
         private Button btnCopyScript;
 
-        private static readonly Tuple<string, string>[] ExampleScripts;
+        private class ScriptExample
+        {
+            public string Title { get; }
+            public string Code { get; }
+            public CorePlatform.ScriptLanguage Language { get; }
+
+            public ScriptExample(string title, string code, CorePlatform.ScriptLanguage language)
+            {
+                Title = title; Code = code; Language = language;
+            }
+        }
+
+        private static readonly ScriptExample[] ExampleScripts;
 
         static HelpForm()
         {
-            var tempScriptsList = new List<Tuple<string, string>>();
+            var tempScriptsList = new List<ScriptExample>();
             string baseDir = Application.StartupPath;
             string tempScriptsDir = Path.Combine(baseDir, "temp_scripts");
 
             var scriptFiles = new[] {
-                new { Title = "1. Basic Logging", FileName = "example1.cs.txt" },
-                new { Title = "2. List Loaded Plugins", FileName = "example2.cs.txt" },
-                new { Title = "3. Execute Command on SamplePlugin", FileName = "example3.cs.txt" },
-                new { Title = "4. Handle Plugin Not Found", FileName = "example4.cs.txt" },
-                new { Title = "5. Use MessageBox (WinForms)", FileName = "example5.cs.txt" }
+                new { Title = "C# 1. Basic Logging", FileName = "example1.cs.txt", Lang = ScriptLanguage.CSharp },
+                new { Title = "C# 2. List Loaded Plugins", FileName = "example2.cs.txt", Lang = ScriptLanguage.CSharp },
+                new { Title = "C# 3. Execute Command on SamplePlugin", FileName = "example3.cs.txt", Lang = ScriptLanguage.CSharp },
+                new { Title = "C# 4. Handle Plugin Not Found", FileName = "example4.cs.txt", Lang = ScriptLanguage.CSharp },
+                new { Title = "C# 5. Use MessageBox (WinForms)", FileName = "example5.cs.txt", Lang = ScriptLanguage.CSharp },
+                new { Title = "Python 1. Basic Logging", FileName = "example_py1.py.txt", Lang = ScriptLanguage.Python },
+                new { Title = "Python 2. List Plugins", FileName = "example_py2.py.txt", Lang = ScriptLanguage.Python }
             };
 
             foreach (var scriptFile in scriptFiles)
@@ -44,17 +59,17 @@ namespace WinFormsUI
                     if (File.Exists(filePath))
                     {
                         string scriptCode = File.ReadAllText(filePath);
-                        tempScriptsList.Add(Tuple.Create(scriptFile.Title, scriptCode));
+                        tempScriptsList.Add(new ScriptExample(scriptFile.Title, scriptCode, scriptFile.Lang));
                     }
                     else
                     {
-                        tempScriptsList.Add(Tuple.Create(scriptFile.Title + " (Error: File Not Found)", $"// Error: Could not load {scriptFile.FileName} from {tempScriptsDir}"));
+                        tempScriptsList.Add(new ScriptExample(scriptFile.Title + " (Error: File Not Found)", $"// Error: Could not load {scriptFile.FileName} from {tempScriptsDir}", scriptFile.Lang));
                         Console.Error.WriteLine($"HelpForm Error: Example script file not found: {filePath}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    tempScriptsList.Add(Tuple.Create(scriptFile.Title + $" (Error: {ex.GetType().Name})", $"// Error loading {scriptFile.FileName}: {ex.Message}"));
+                    tempScriptsList.Add(new ScriptExample(scriptFile.Title + $" (Error: {ex.GetType().Name})", $"// Error loading {scriptFile.FileName}: {ex.Message}", scriptFile.Lang));
                     Console.Error.WriteLine($"HelpForm Error: Exception loading script file {filePath}: {ex.Message}");
                 }
             }
@@ -180,10 +195,10 @@ namespace WinFormsUI
         {
             this.tvExamples.BeginUpdate();
             this.tvExamples.Nodes.Clear();
-            foreach (var scriptTuple in ExampleScripts)
+            foreach (var scriptExample in ExampleScripts)
             {
-                TreeNode node = new TreeNode(scriptTuple.Item1);
-                node.Tag = scriptTuple.Item2;
+                TreeNode node = new TreeNode(scriptExample.Title);
+                node.Tag = scriptExample; // Store the whole ScriptExample object
                 this.tvExamples.Nodes.Add(node);
             }
             this.tvExamples.EndUpdate();
@@ -199,14 +214,23 @@ namespace WinFormsUI
 
         private void tvExamples_AfterSelect(object sender, TreeViewEventArgs e)
         {
-            if (e.Node != null && e.Node.Tag is string scriptCode)
+            if (e.Node != null && e.Node.Tag is ScriptExample selectedExample)
             {
-                this.fctbExampleViewer.Text = scriptCode;
+                this.fctbExampleViewer.Text = selectedExample.Code;
+                if (selectedExample.Language == ScriptLanguage.Python)
+                {
+                    this.fctbExampleViewer.Language = FastColoredTextBoxNS.Language.Python;
+                }
+                else // Default to CSharp for CSharp examples or any error messages shown in viewer
+                {
+                    this.fctbExampleViewer.Language = FastColoredTextBoxNS.Language.CSharp;
+                }
                 this.fctbExampleViewer.ClearUndo();
             }
             else
             {
                 this.fctbExampleViewer.Text = "// Please select an example from the list.";
+                this.fctbExampleViewer.Language = FastColoredTextBoxNS.Language.CSharp; // Default for placeholder
             }
         }
 

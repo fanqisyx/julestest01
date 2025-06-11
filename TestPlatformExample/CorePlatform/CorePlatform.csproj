@@ -7,5 +7,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.8.0" />
+    <PackageReference Include="IronPython" Version="3.4.1" />
   </ItemGroup>
 </Project>

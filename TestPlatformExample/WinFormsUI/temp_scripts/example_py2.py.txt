@@ -1,0 +1,6 @@
+# Python Example 2: List Plugins
+plugin_names = Host.ListPluginNames()
+if plugin_names and len(plugin_names) > 0:
+    Host.print("Loaded plugins (Python): " + ", ".join(plugin_names))
+else:
+    Host.print("No plugins are currently loaded (Python).")
