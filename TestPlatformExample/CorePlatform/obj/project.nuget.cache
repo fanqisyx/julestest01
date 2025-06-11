@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "pLky2mNUPJ+BCzy0nhdHj8VqUNgzQmN+GezF0VGtai78YuCK2597cPSB/R+I7LfKC4jiKSCiEVQBtPHhNhwq2A==",
+  "dgSpecHash": "25Qp2a7wEfTUucvqYjb5WZlEjXBLxNc/uZ9A/VuG8GfZdtwv0nQQ5NvOKnq4nfXRIMS24tJmW3xhnAx/AXhUZA==",
   "success": true,
   "projectFilePath": "/app/TestPlatformExample/CorePlatform/CorePlatform.csproj",
   "expectedPackageFiles": [

@@ -28,6 +28,11 @@ namespace WinFormsUI
             LogMessage("Application started. Logging initialized.");
         }
 
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+            new HelpForm().ShowDialog();
+        }
+
         private void LogMessage(string originalMessage)
         {
             string timestampedMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {originalMessage}";

@@ -14,4 +14,9 @@
     <!-- Trying FastColoredTextBox.Net5 -->
     <PackageReference Include="FastColoredTextBox.Net5" Version="2.16.24" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="temp_scripts/**/*.cs.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 </Project>
