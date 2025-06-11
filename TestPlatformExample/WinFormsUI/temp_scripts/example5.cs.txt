@@ -1,0 +1,9 @@
+Host.Log("Attempting to show a MessageBox.");
+// System.Windows.Forms should be available due to ScriptEngine defaults if host is WinForms.
+DialogResult dr = MessageBox.Show("Hello from script!", "Script Info", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
+Host.Log("MessageBox result: " + dr.ToString());
+if (dr == DialogResult.OK) {
+    Host.Log("User clicked OK.");
+} else {
+    Host.Log("User clicked Cancel or closed the dialog.");
+}

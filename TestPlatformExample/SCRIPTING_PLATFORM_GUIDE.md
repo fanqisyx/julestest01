@@ -18,6 +18,7 @@ The main `WinFormsUI` application provides the following elements for scripting:
 - **Script Input Area**: A multi-line text box (using `FastColoredTextBox` for syntax highlighting) on the main form where you can write or paste short C# scripts.
 - **"Run Script" Button (on MainForm)**: Executes the script currently in the main form's input area.
 - **"Open Script Editor" Button**: Opens a separate, more advanced `ScriptEditorForm` window.
+- **"Plugin Info" Button**: Opens a window displaying details about loaded plugins, including available script commands.
 - **Log Display**: The main ListBox in the UI will show:
     - Messages logged by your script via `Host.Log()` or `Host.print()`.
     - Return values from your script.
@@ -33,7 +34,7 @@ The **`ScriptEditorForm`** provides:
     - **Check Syntax**: Compiles the script without running it and reports any errors or warnings.
     - **Script Settings...**: Opens a dialog to customize the scripting environment for the current editor session by adding extra namespace imports or assembly references.
 - **Help Menu**:
-    - **Scripting Guide...**: Opens the "Scripting Help & Examples" window (this guide and examples).
+    - **Scripting Guide...**: Opens the "Scripting Help & Examples" window (which displays this guide and example scripts).
 - **Status Bar**: Displays status messages like "Ready", "Executing script...", "Syntax check: OK.", etc.
 
 ## 3. The `Host` Scripting API
@@ -116,7 +117,27 @@ If your script needs access to additional .NET namespaces or assemblies not incl
 
 Click "OK" to save these settings. These settings will be used by the `ScriptEngine` the next time you "Run Script" or "Check Syntax" *from the ScriptEditorForm that holds these settings*.
 
-## 6. Using the Help Window
+## 6. Discovering Plugin Capabilities (Plugin Info Window)
+
+To effectively script plugins, you need to know which plugins are loaded and what scriptable commands they offer. The main application provides a "Plugin Info" window for this purpose.
+
+1.  On the **MainForm**, click the **"Plugin Info"** button.
+2.  This opens the "Loaded Plugin Information" window.
+
+**Features of the Plugin Info Window:**
+
+*   **Plugin List**: The left side lists all currently loaded plugins by Name and Description.
+*   **Plugin Details**: When you select a plugin from the list, the right side displays detailed information:
+    *   **Name**: The plugin's `Name` property.
+    *   **Description**: The plugin's `Description` property.
+    *   **Type**: The full .NET type of the plugin.
+    *   **Assembly Location**: The file path of the assembly the plugin was loaded from.
+    *   **Scriptable (IScriptablePlugin)**: Indicates "Yes" if the plugin implements the `IScriptablePlugin` interface, meaning it can be targeted by `Host.ExecutePluginCommand(...)`.
+    *   **Available Script Commands**: If a plugin is scriptable, this section lists all the command names (strings) that the plugin declares it supports via its `GetAvailableScriptCommands()` method. These are the `commandName` values you should use with `Host.ExecutePluginCommand(...)` for that specific plugin.
+
+Use this window to identify your target plugin and the exact command names it expects.
+
+## 7. Using the Help Window
 
 The Script Editor provides a help window to assist you:
 
@@ -124,14 +145,18 @@ The Script Editor provides a help window to assist you:
 2.  Select **Scripting Guide...**. This will open the "Scripting Help & Examples" window.
 
 **The Help Window features:**
-*   **This Guide**: The top panel displays this scripting guide document for easy reference.
+*   **This Guide**: The top panel displays this scripting guide document (`SCRIPTING_PLATFORM_GUIDE.md`) for easy reference.
 *   **Example Scripts**:
-    *   A list of example script titles is shown in a tree view in the bottom-left panel.
-    *   Clicking on an example title will display its C# code in the viewer panel (bottom-right).
-    *   This code is read-only but can be studied and copied.
-*   **"Copy Script to Clipboard" Button**: Below the example script viewer, this button copies the currently displayed example script's code to your clipboard, so you can easily paste it into the Script Editor.
+    *   A list of example script titles is shown in a tree view in the bottom-left panel. Currently available examples include:
+        1.  Basic Logging
+        2.  List Loaded Plugins
+        3.  Execute Command on SamplePlugin
+        4.  Handle Plugin Not Found
+        5.  Use MessageBox (WinForms)
+    *   Clicking on an example title will display its C# code in the code viewer panel (bottom-right). This code is read-only.
+*   **"Copy Script to Clipboard" Button**: Below the example script viewer, this button copies the currently displayed example script's code to your clipboard. You can then paste it into the Script Editor or any text editor.
 
-## 7. Writing Scripts - Best Practices
+## 8. Writing Scripts - Best Practices
 
 -   **Check for Loaded Plugins**: Before attempting to execute commands on a plugin, ensure it's loaded. Use `Host.ListPluginNames()` and check if your target plugin's name is in the list.
 -   **Error Handling in Scripts**: While the host logs errors, your script can also use `try-catch` blocks if you anticipate specific issues or want to handle plugin command errors gracefully.
@@ -141,7 +166,7 @@ The Script Editor provides a help window to assist you:
 -   **Return Values**: Scripts can return values. The last expression evaluated in a script is often its return value. For example, `1 + 1` at the end of a script will result in the script returning `2`. This return value will be logged by the UI.
 -   **Logging**: Use `Host.Log()` or `Host.print()` liberally to trace your script's execution path and intermediate values. This is very helpful for debugging.
 
-## 8. Example Script (using `SamplePlugin`)
+## 9. Example Script (using `SamplePlugin`)
 
 This script assumes `SamplePlugin` (which implements `IScriptablePlugin`) has been loaded.
 
@@ -200,12 +225,13 @@ Host.print("Script finished.");
 "Script execution summary: All planned steps attempted.";
 ```
 
-## 9. Developing Scriptable Plugins
+## 10. Developing Scriptable Plugins
 
 For a plugin to be targeted by `Host.ExecutePluginCommand`, it must:
 1.  Implement the `CorePlatform.IPlugin` interface.
-2.  Implement the `CorePlatform.IScriptablePlugin` interface, which adds the method:
+2.  Implement the `CorePlatform.IScriptablePlugin` interface, which adds the methods:
     `string? ExecuteScriptCommand(string commandName, string parameters);`
+    `string[] GetAvailableScriptCommands();`
 3.  Be built as a DLL and placed in the `Plugins` folder of the `WinFormsUI` application, along with `CorePlatform.dll`.
 
 Refer to the `README_Example.md` and `PLUGIN_DEVELOPMENT_GUIDE_CN.md` for detailed steps on creating and deploying plugins. The `SamplePlugin` included in this example project is a reference for a scriptable plugin.

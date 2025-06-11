@@ -1,0 +1,10 @@
+Host.Log("Attempting to list loaded plugins...");
+string[] pluginNames = Host.ListPluginNames();
+if (pluginNames.Length == 0) {
+    Host.Log("No plugins are currently loaded.");
+} else {
+    Host.Log("Currently loaded plugins are:");
+    foreach (string name in pluginNames) {
+        Host.Log($"- {name}");
+    }
+}

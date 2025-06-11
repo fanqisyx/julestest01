@@ -128,7 +128,7 @@ namespace WinFormsUI
                 return;
             }
 
-            ScriptExecutionResult result = await _scriptEngine.ExecuteScriptAsync(scriptText, _pluginManager, LogMessage);
+            ScriptExecutionResult result = await _scriptEngine.ExecuteScriptAsync(scriptText, _pluginManager, LogMessage, null, null); // Pass null for custom settings from MainForm
 
             if (result.Success)
             {
@@ -183,10 +183,8 @@ namespace WinFormsUI
 
             using (ScriptEditorForm scriptEditor = new ScriptEditorForm(_scriptEngine, _pluginManager, LogMessage, currentScriptOnMainForm))
             {
-                // scriptEditor.Owner = this; // Optional: explicitly set owner
-                DialogResult editorResult = scriptEditor.ShowDialog(this); // Show modally, passing owner
+                DialogResult editorResult = scriptEditor.ShowDialog(this);
 
-                // After the ScriptEditorForm is closed
                 if (scriptEditor.WasClosedSuccessfully)
                 {
                     if (this.fctbScriptInput != null)
@@ -204,6 +202,21 @@ namespace WinFormsUI
                     LogMessage("ScriptEditor: Closed with cancellation or an issue, content not synchronized back.");
                 }
             }
+        }
+
+        private void btnShowPluginInfo_Click(object sender, EventArgs e)
+        {
+            if (_pluginManager == null)
+            {
+                LogMessage("Error: PluginManager not initialized. Cannot show plugin info.");
+                MessageBox.Show(this, "PluginManager is not initialized.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            PluginInfoForm pluginInfoForm = new PluginInfoForm(_pluginManager);
+            pluginInfoForm.Owner = this;
+            pluginInfoForm.Show();
+            LogMessage("MainForm: Plugin Info window opened.");
         }
 
         private void RefreshPluginList()

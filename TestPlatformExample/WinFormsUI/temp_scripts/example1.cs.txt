@@ -1,0 +1,7 @@
+Host.Log("Hello from a C# script!");
+Host.Log("This is another log entry.");
+int a = 10;
+int b = 20;
+Host.Log($"The sum of {a} and {b} is {a + b}.");
+// Script return value (last expression) will be a+b
+a+b;

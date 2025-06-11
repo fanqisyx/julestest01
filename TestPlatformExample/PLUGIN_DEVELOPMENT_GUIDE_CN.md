@@ -125,20 +125,18 @@ namespace MyCustomPlugin
 
 **7.1 `IScriptablePlugin` 接口**
 
-`IScriptablePlugin` 接口继承自 `IPlugin`，并额外定义了一个方法：
+`IScriptablePlugin` 接口继承自 `IPlugin`，并额外定义了以下方法：
 
 ```csharp
 namespace CorePlatform
 {
     public interface IScriptablePlugin : IPlugin
     {
-        /// <summary>
-        /// 执行从脚本传递过来的命令。
-        /// </summary>
-        /// <param name="commandName">要执行的命令的名称。</param>
-        /// <param name="parameters">命令所需的参数，通常为字符串形式。</param>
-        /// <returns>命令执行结果的字符串，或 null (如果没有直接的字符串结果)。</returns>
+        // 执行从脚本传递过来的命令
         string? ExecuteScriptCommand(string commandName, string parameters);
+
+        // 获取插件支持的脚本命令列表
+        string[] GetAvailableScriptCommands(); // 新增方法
     }
 }
 ```
@@ -215,6 +213,31 @@ Host.print($"'{pluginName}' Echo 命令的回应: {echoResponse ?? "null"}");
 *   **返回值**: 方法返回 `string?`。这个字符串会传递回脚本，并可能由脚本记录或处理。确保返回有意义的信息，包括成功状态或错误详情。
 *   **错误处理**: 在方法内部实现健壮的错误处理。如果命令执行失败，返回描述错误的字符串。
 *   **日志**: 虽然 `ScriptingHost` 会记录命令的调用和返回，插件内部也可以使用 `Console.WriteLine` 或其他日志机制进行更详细的诊断。
+
+**7.5 声明插件支持的脚本命令 (Declaring Supported Script Commands)**
+
+为了让脚本编写者更容易发现您的插件支持哪些命令，您应该在实现了 `IScriptablePlugin` 接口的插件中，同时实现 `GetAvailableScriptCommands()` 方法。
+
+```csharp
+// IScriptablePlugin 接口中的 GetAvailableScriptCommands 方法定义:
+// namespace CorePlatform {
+//     public interface IScriptablePlugin : IPlugin {
+//         // ... ExecuteScriptCommand ...
+//         string[] GetAvailableScriptCommands();
+//     }
+// }
+```
+
+此方法应返回一个字符串数组，其中每个字符串都是您的插件通过 `ExecuteScriptCommand` 方法支持的一个 `commandName`。
+
+**示例 (在 `SamplePlugin` 的 `MyPlugin.cs` 中):**
+```csharp
+public string[] GetAvailableScriptCommands()
+{
+    return new string[] { "GetStatus", "Echo", "Add" };
+}
+```
+当插件被加载后，主程序可以通过调用此方法获取命令列表，并在“插件信息 (Plugin Info)”窗口中展示给用户。这极大地提高了插件脚本功能的可发现性。
 
 ---
 遵循这些步骤，您应该能够成功开发并集成新的插件到 `TestPlatformExample` 平台中。

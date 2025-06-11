@@ -1,0 +1,14 @@
+// Ensure 'Sample Test Plugin' is loaded first via MainForm's 'Load Plugins' button.
+string targetPlugin = "Sample Test Plugin"; // Plugin's Name property
+
+Host.Log($"Attempting to execute 'GetStatus' on '{targetPlugin}'...");
+string? statusResult = Host.ExecutePluginCommand(targetPlugin, "GetStatus", null); // Script passes null as parameters
+Host.Log($"'{targetPlugin}' GetStatus result: {(statusResult ?? "null")}");
+
+Host.Log($"Attempting to execute 'Echo' on '{targetPlugin}'...");
+string? echoResult = Host.ExecutePluginCommand(targetPlugin, "Echo", "Hello from Script Example 3!");
+Host.Log($"'{targetPlugin}' Echo result: {(echoResult ?? "null")}");
+
+Host.Log($"Attempting to execute 'Add' on '{targetPlugin}'...");
+string? addResult = Host.ExecutePluginCommand(targetPlugin, "Add", "123,456");
+Host.Log($"'{targetPlugin}' Add result: {(addResult ?? "null")}");

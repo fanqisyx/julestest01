@@ -3,7 +3,7 @@ using System; // For StringSplitOptions, Exception, double.TryParse
 
 namespace SamplePlugin
 {
-    public class MyPlugin : IScriptablePlugin // Implements IScriptablePlugin
+    public class MyPlugin : IScriptablePlugin
     {
         public string Name => "Sample Test Plugin";
         public string Description => "A simple plugin that performs a mock test and supports script commands.";
@@ -12,7 +12,6 @@ namespace SamplePlugin
 
         public void Load()
         {
-            // In a real plugin, initialize resources here
             Console.WriteLine($"Plugin '{Name}': Loaded.");
         }
 
@@ -20,25 +19,21 @@ namespace SamplePlugin
         {
             _hostLogCallback = logCallback;
             _hostLogCallback?.Invoke($"Plugin '{Name}': Starting test...");
-            // Simulate some test steps
-            System.Threading.Thread.Sleep(500); // Simulate work
+            System.Threading.Thread.Sleep(500);
             _hostLogCallback?.Invoke($"Plugin '{Name}': Step 1 completed.");
-            System.Threading.Thread.Sleep(1000); // Simulate more work
+            System.Threading.Thread.Sleep(1000);
             _hostLogCallback?.Invoke($"Plugin '{Name}': Step 2 completed.");
             _hostLogCallback?.Invoke($"Plugin '{Name}': Test finished successfully.");
         }
 
         public void Unload()
         {
-            // In a real plugin, release resources here
             _hostLogCallback?.Invoke($"Plugin '{Name}': Unloaded.");
             Console.WriteLine($"Plugin '{Name}': Unloaded.");
         }
 
-        // Implementation of IScriptablePlugin.ExecuteScriptCommand
         public string? ExecuteScriptCommand(string commandName, string parameters)
         {
-            // Log entry of this command via console for plugin's own diagnostics if needed
             Console.WriteLine($"Plugin '{Name}': Script command '{commandName}' received. Params: '{parameters}'");
 
             switch (commandName.ToLowerInvariant())
@@ -64,6 +59,11 @@ namespace SamplePlugin
                 default:
                     return $"Error: Unknown command '{commandName}' for plugin '{Name}'.";
             }
+        }
+
+        public string[] GetAvailableScriptCommands()
+        {
+            return new string[] { "GetStatus", "Echo", "Add" };
         }
     }
 }

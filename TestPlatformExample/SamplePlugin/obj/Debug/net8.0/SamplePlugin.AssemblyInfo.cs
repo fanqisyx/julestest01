@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SamplePlugin")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f37984e1ad502aa9b39255ee4c30136a0dea2a85")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6a3122c586327cc4a01c6f2ce741c8737142a18b")]
 [assembly: System.Reflection.AssemblyProductAttribute("SamplePlugin")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SamplePlugin")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

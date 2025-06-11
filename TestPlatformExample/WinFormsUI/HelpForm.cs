@@ -20,60 +20,46 @@ namespace WinFormsUI
         private FastColoredTextBox fctbExampleViewer;
         private Button btnCopyScript;
 
-        private static readonly Tuple<string, string>[] ExampleScripts = new Tuple<string, string>[]
+        private static readonly Tuple<string, string>[] ExampleScripts;
+
+        static HelpForm()
         {
-            Tuple.Create("1. Basic Logging",
-                "Host.Log(\"Hello from a C# script!\");\n" +
-                "Host.Log(\"This is another log entry.\");\n" +
-                "int a = 10;\n" +
-                "int b = 20;\n" +
-                "Host.Log($\"The sum of {a} and {b} is {a + b}.\");\n" +
-                "// Script return value (last expression) will be a+b\n" +
-                "a+b;"),
+            var tempScriptsList = new List<Tuple<string, string>>();
+            string baseDir = Application.StartupPath;
+            string tempScriptsDir = Path.Combine(baseDir, "temp_scripts");
 
-            Tuple.Create("2. List Loaded Plugins",
-                "Host.Log(\"Attempting to list loaded plugins...\");\n" +
-                "string[] pluginNames = Host.ListPluginNames();\n" +
-                "if (pluginNames.Length == 0) {\n" +
-                "    Host.Log(\"No plugins are currently loaded.\");\n" +
-                "} else {\n" +
-                "    Host.Log(\"Currently loaded plugins are:\");\n" +
-                "    foreach (string name in pluginNames) {\n" +
-                "        Host.Log($\"- {name}\");\n" +
-                "    }\n" +
-                "}"),
+            var scriptFiles = new[] {
+                new { Title = "1. Basic Logging", FileName = "example1.cs.txt" },
+                new { Title = "2. List Loaded Plugins", FileName = "example2.cs.txt" },
+                new { Title = "3. Execute Command on SamplePlugin", FileName = "example3.cs.txt" },
+                new { Title = "4. Handle Plugin Not Found", FileName = "example4.cs.txt" },
+                new { Title = "5. Use MessageBox (WinForms)", FileName = "example5.cs.txt" }
+            };
 
-            Tuple.Create("3. Execute Command on SamplePlugin",
-                "// Ensure 'Sample Test Plugin' is loaded first via MainForm's 'Load Plugins' button.\n" +
-                "string targetPlugin = \"Sample Test Plugin\"; // Plugin's Name property\n\n" +
-                "Host.Log($\"Attempting to execute 'GetStatus' on '{targetPlugin}'...\");\n" +
-                "string? statusResult = Host.ExecutePluginCommand(targetPlugin, \"GetStatus\", null);\n" +
-                "Host.Log($\"'{targetPlugin}' GetStatus result: {(statusResult ?? \"null\")}\");\n\n" +
-                "Host.Log($\"Attempting to execute 'Echo' on '{targetPlugin}'...\");\n" +
-                "string? echoResult = Host.ExecutePluginCommand(targetPlugin, \"Echo\", \"Hello from Script Example 3!\"); \n" +
-                "Host.Log($\"'{targetPlugin}' Echo result: {(echoResult ?? \"null\")}\");\n\n" +
-                "Host.Log($\"Attempting to execute 'Add' on '{targetPlugin}'...\");\n" +
-                "string? addResult = Host.ExecutePluginCommand(targetPlugin, \"Add\", \"123,456\"); \n" +
-                "Host.Log($\"'{targetPlugin}' Add result: {(addResult ?? \"null\")}\");"),
-
-            Tuple.Create("4. Handle Plugin Not Found",
-                "string nonExistentPlugin = \"FakePlugin123\";\n" +
-                "Host.Log($\"Attempting to execute a command on a non-existent plugin: '{nonExistentPlugin}'...\");\n" +
-                "string? result = Host.ExecutePluginCommand(nonExistentPlugin, \"AnyCommand\", \"anyparams\");\n" +
-                "Host.Log($\"Result for '{nonExistentPlugin}': {(result ?? \"null\")}\"); \n" +
-                "// Expected: Result will contain an error message."),
-
-            Tuple.Create("5. Use MessageBox (WinForms)",
-                "Host.Log(\"Attempting to show a MessageBox.\");\n" +
-                "// System.Windows.Forms should be available due to ScriptEngine defaults if host is WinForms.\n" +
-                "DialogResult dr = MessageBox.Show(\"Hello from script!\", \"Script Info\", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);\n" +
-                "Host.Log(\"MessageBox result: \" + dr.ToString());\n" +
-                "if (dr == DialogResult.OK) {\n" +
-                "    Host.Log(\"User clicked OK.\");\n" +
-                "} else {\n" +
-                "    Host.Log(\"User clicked Cancel or closed the dialog.\");\n" +
-                "}")
-        };
+            foreach (var scriptFile in scriptFiles)
+            {
+                string filePath = Path.Combine(tempScriptsDir, scriptFile.FileName);
+                try
+                {
+                    if (File.Exists(filePath))
+                    {
+                        string scriptCode = File.ReadAllText(filePath);
+                        tempScriptsList.Add(Tuple.Create(scriptFile.Title, scriptCode));
+                    }
+                    else
+                    {
+                        tempScriptsList.Add(Tuple.Create(scriptFile.Title + " (Error: File Not Found)", $"// Error: Could not load {scriptFile.FileName} from {tempScriptsDir}"));
+                        Console.Error.WriteLine($"HelpForm Error: Example script file not found: {filePath}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    tempScriptsList.Add(Tuple.Create(scriptFile.Title + $" (Error: {ex.GetType().Name})", $"// Error loading {scriptFile.FileName}: {ex.Message}"));
+                    Console.Error.WriteLine($"HelpForm Error: Exception loading script file {filePath}: {ex.Message}");
+                }
+            }
+            ExampleScripts = tempScriptsList.ToArray();
+        }
 
         public HelpForm()
         {
@@ -136,7 +122,7 @@ namespace WinFormsUI
             this.btnCopyScript.Text = "Copy Script to Clipboard";
             this.btnCopyScript.Size = new System.Drawing.Size(100, 28);
             this.btnCopyScript.UseVisualStyleBackColor = true;
-            this.btnCopyScript.Click += new System.EventHandler(this.btnCopyScript_Click); // Wired up
+            this.btnCopyScript.Click += new System.EventHandler(this.btnCopyScript_Click);
 
             this.splitContainerExamples.Dock = System.Windows.Forms.DockStyle.Fill;
             this.splitContainerExamples.Name = "splitContainerExamples";
@@ -207,7 +193,7 @@ namespace WinFormsUI
             }
             else
             {
-                this.fctbExampleViewer.Text = "// No examples loaded.";
+                this.fctbExampleViewer.Text = "// No examples loaded or found in temp_scripts.";
             }
         }
 
@@ -227,21 +213,29 @@ namespace WinFormsUI
         private void btnCopyScript_Click(object sender, EventArgs e)
         {
             string scriptToCopy = this.fctbExampleViewer.Text;
-            if (!string.IsNullOrEmpty(scriptToCopy))
+            if (!string.IsNullOrEmpty(scriptToCopy) &&
+                scriptToCopy != "// Please select an example from the list." &&
+                scriptToCopy != "// No examples loaded." &&
+                !scriptToCopy.StartsWith("// Error: Could not load") &&
+                !scriptToCopy.StartsWith("// Error loading"))
             {
                 try
                 {
                     Clipboard.SetText(scriptToCopy);
-                    // Optionally, provide feedback to the user. For example:
-                    // MessageBox.Show(this, "Script copied to clipboard!", "Copied", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    Console.WriteLine("HelpForm: Script copied to clipboard."); // For debugging
+                    Console.WriteLine("HelpForm: Example script copied to clipboard.");
+                    // Optional: Could update a status label on HelpForm itself temporarily.
                 }
                 catch (Exception ex)
                 {
                     Console.Error.WriteLine($"HelpForm: Error copying script to clipboard: {ex.Message}");
-                    // Optionally, inform the user of the error:
-                    // MessageBox.Show(this, "Could not copy script to clipboard.\n" + ex.Message, "Copy Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(this, "Could not copy script to clipboard. See application logs for details.", "Copy Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
+            }
+            else
+            {
+                Console.WriteLine("HelpForm: No valid script content in viewer to copy.");
+                // Optional: Feedback if there's nothing valid to copy
+                // MessageBox.Show(this, "No script content selected or available to copy.", "Copy Script", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
     }

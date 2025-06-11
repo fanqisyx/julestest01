@@ -1,0 +1,5 @@
+string nonExistentPlugin = "FakePlugin123";
+Host.Log($"Attempting to execute a command on a non-existent plugin: '{nonExistentPlugin}'...");
+string? result = Host.ExecutePluginCommand(nonExistentPlugin, "AnyCommand", "anyparams");
+Host.Log($"Result for '{nonExistentPlugin}': {(result ?? "null")}");
+// Expected: Result will contain an error message.
