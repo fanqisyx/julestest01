@@ -182,7 +182,7 @@ namespace CorePlatform
                 try
                 {
                     _hostLogCallback?.Invoke("ScriptEngine: Executing Python script...");
-                    ScriptSource source = pyEngine.CreateScriptSourceFromString(scriptText, SourceCodeKind.Statements);
+                    ScriptSource source = pyEngine.CreateScriptSourceFromString(scriptText, Microsoft.Scripting.SourceCodeKind.Statements);
                     object? pythonResult = source.Execute(pyScope);
                     _hostLogCallback?.Invoke("ScriptEngine: Python script execution completed.");
 
@@ -273,7 +273,7 @@ namespace CorePlatform
                 try
                 {
                     _hostLogCallback?.Invoke("ScriptEngine: Checking Python script syntax...");
-                    ScriptSource source = pyEngine.CreateScriptSourceFromString(scriptText, SourceCodeKind.Statements);
+                    ScriptSource source = pyEngine.CreateScriptSourceFromString(scriptText, Microsoft.Scripting.SourceCodeKind.Statements);
                     source.Compile(); // Compile will throw on syntax error
                     result.Success = true;
                     _hostLogCallback?.Invoke("ScriptEngine: Python Syntax check completed. No errors found.");

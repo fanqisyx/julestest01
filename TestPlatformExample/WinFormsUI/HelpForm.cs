@@ -42,13 +42,13 @@ namespace WinFormsUI
             string tempScriptsDir = Path.Combine(baseDir, "temp_scripts");
 
             var scriptFiles = new[] {
-                new { Title = "C# 1. Basic Logging", FileName = "example1.cs.txt", Lang = ScriptLanguage.CSharp },
-                new { Title = "C# 2. List Loaded Plugins", FileName = "example2.cs.txt", Lang = ScriptLanguage.CSharp },
-                new { Title = "C# 3. Execute Command on SamplePlugin", FileName = "example3.cs.txt", Lang = ScriptLanguage.CSharp },
-                new { Title = "C# 4. Handle Plugin Not Found", FileName = "example4.cs.txt", Lang = ScriptLanguage.CSharp },
-                new { Title = "C# 5. Use MessageBox (WinForms)", FileName = "example5.cs.txt", Lang = ScriptLanguage.CSharp },
-                new { Title = "Python 1. Basic Logging", FileName = "example_py1.py.txt", Lang = ScriptLanguage.Python },
-                new { Title = "Python 2. List Plugins", FileName = "example_py2.py.txt", Lang = ScriptLanguage.Python }
+                new { Title = "C# 1. Basic Logging", FileName = "example1.cs.txt", Lang = CorePlatform.ScriptLanguage.CSharp },
+                new { Title = "C# 2. List Loaded Plugins", FileName = "example2.cs.txt", Lang = CorePlatform.ScriptLanguage.CSharp },
+                new { Title = "C# 3. Execute Command on SamplePlugin", FileName = "example3.cs.txt", Lang = CorePlatform.ScriptLanguage.CSharp },
+                new { Title = "C# 4. Handle Plugin Not Found", FileName = "example4.cs.txt", Lang = CorePlatform.ScriptLanguage.CSharp },
+                new { Title = "C# 5. Use MessageBox (WinForms)", FileName = "example5.cs.txt", Lang = CorePlatform.ScriptLanguage.CSharp },
+                new { Title = "Python 1. Basic Logging", FileName = "example_py1.py.txt", Lang = CorePlatform.ScriptLanguage.Python },
+                new { Title = "Python 2. List Plugins", FileName = "example_py2.py.txt", Lang = CorePlatform.ScriptLanguage.Python }
             };
 
             foreach (var scriptFile in scriptFiles)
@@ -217,7 +217,7 @@ namespace WinFormsUI
             if (e.Node != null && e.Node.Tag is ScriptExample selectedExample)
             {
                 this.fctbExampleViewer.Text = selectedExample.Code;
-                if (selectedExample.Language == ScriptLanguage.Python)
+                if (selectedExample.Language == CorePlatform.ScriptLanguage.Python)
                 {
                     this.fctbExampleViewer.Language = FastColoredTextBoxNS.Language.Python;
                 }
