@@ -1,39 +1,59 @@
 using System.Reflection;
 using System.IO; // Added for Directory and Path operations
+using System.Collections.Generic; // For List
+using System; // For AppDomain, Guid
+using System.Linq; // For FirstOrDefault
 
 namespace CorePlatform
 {
     public class PluginManager
     {
-        private List<IPlugin> _plugins = new List<IPlugin>();
-        private Action<string> _logCallback;
+        private readonly List<IPluginFactory> _pluginFactories = new List<IPluginFactory>();
+        private readonly List<IPluginInstance> _activeInstances = new List<IPluginInstance>();
+        private Action<string> _hostLogCallback;
+        private readonly string _instanceConfigPath;
 
-        public PluginManager(Action<string> logCallback)
+        public PluginManager(Action<string> hostLogCallback)
         {
-            _logCallback = logCallback;
-            // Initialize _plugins if it's null, though field initializer does this.
-            // _plugins = _plugins ?? new List<IPlugin>();
+            _hostLogCallback = hostLogCallback;
+            // Define a subdirectory for plugin configurations for better organization
+            string configDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PluginData");
+            if (!Directory.Exists(configDirectory))
+            {
+                try
+                {
+                    Directory.CreateDirectory(configDirectory);
+                }
+                catch (Exception ex)
+                {
+                    _hostLogCallback?.Invoke($"PluginManager Error: Could not create directory {configDirectory}. Error: {ex.Message}. Instance configurations may fail to save/load.");
+                    // Fallback to base directory if sub-directory creation fails
+                    configDirectory = AppDomain.CurrentDomain.BaseDirectory;
+                }
+            }
+            _instanceConfigPath = Path.Combine(configDirectory, "plugin_instances.json");
+            _hostLogCallback?.Invoke($"PluginManager: Instance configuration path set to: {_instanceConfigPath}");
         }
 
         public void DiscoverPlugins(string pluginFolderPath)
         {
-            _logCallback($"Discovering plugins in folder: {pluginFolderPath}");
+            _hostLogCallback?.Invoke($"PluginManager: Discovering plugin factories in folder: {pluginFolderPath}");
 
             if (!Directory.Exists(pluginFolderPath))
             {
-                _logCallback($"Error: Plugin folder '{pluginFolderPath}' not found.");
+                _hostLogCallback?.Invoke($"PluginManager Error: Plugin folder '{pluginFolderPath}' not found.");
                 return;
             }
 
-            // Optional: Clear existing plugins if this is a refresh operation
-            // _plugins.Clear();
-            // _logCallback("Cleared existing plugins before discovery.");
+            _pluginFactories.Clear();
+            _activeInstances.Clear(); // Clearing factories means active instances from those factories are no longer valid
+            _hostLogCallback?.Invoke("PluginManager: Cleared existing plugin factories and active instances before discovery.");
 
             string[] dllFiles = Directory.GetFiles(pluginFolderPath, "*.dll");
 
             if (dllFiles.Length == 0)
             {
-                _logCallback($"No DLLs found in plugin folder: {pluginFolderPath}");
+                _hostLogCallback?.Invoke($"PluginManager: No DLLs found in plugin folder: {pluginFolderPath}");
                 return;
             }
 
@@ -41,76 +61,88 @@ namespace CorePlatform
             {
                 try
                 {
-                    // For more advanced scenarios (e.g., unloading, versioning),
-                    // consider using AssemblyLoadContext.
                     Assembly pluginAssembly = Assembly.LoadFrom(dllPath);
-                    var pluginTypes = pluginAssembly.GetTypes()
-                        .Where(t => typeof(IPlugin).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract);
+                    var factoryTypes = pluginAssembly.GetTypes()
+                        .Where(t => typeof(IPluginFactory).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract);
 
-                    foreach (var type in pluginTypes)
+                    foreach (var type in factoryTypes)
                     {
                         try
                         {
-                            IPlugin? plugin = Activator.CreateInstance(type) as IPlugin;
-                            if (plugin != null)
+                            IPluginFactory? factory = Activator.CreateInstance(type) as IPluginFactory;
+                            if (factory != null)
                             {
-                                // Basic duplicate check by Name. More robust checks might involve version or full type name.
-                                if (!_plugins.Any(p => p.Name == plugin.Name))
+                                // Check for duplicates by FactoryId or TypeName before adding
+                                if (!_pluginFactories.Any(f => f.FactoryId == factory.FactoryId || f.TypeName == factory.TypeName))
                                 {
-                                    _plugins.Add(plugin);
-                                    plugin.Load(); // Call Load after adding
-                                    _logCallback($"Successfully loaded plugin: {plugin.Name} from {Path.GetFileName(dllPath)}");
+                                    factory.LoadPluginFactory(); // Call LoadPluginFactory after instantiation
+                                    _pluginFactories.Add(factory);
+                                    _hostLogCallback?.Invoke($"PluginManager: Successfully loaded plugin factory: {factory.TypeName} (ID: {factory.FactoryId}) from {Path.GetFileName(dllPath)}");
                                 }
                                 else
                                 {
-                                    _logCallback($"Plugin '{plugin.Name}' from {Path.GetFileName(dllPath)} already loaded. Skipping.");
+                                    _hostLogCallback?.Invoke($"PluginManager: Plugin factory '{factory.TypeName}' from {Path.GetFileName(dllPath)} already loaded or ID conflict. Skipping.");
                                 }
                             }
                         }
                         catch (Exception ex)
                         {
-                            _logCallback($"Error instantiating plugin type '{type.FullName}' from {Path.GetFileName(dllPath)}: {ex.Message}");
+                            _hostLogCallback?.Invoke($"PluginManager Error: Error instantiating plugin factory type '{type.FullName}' from {Path.GetFileName(dllPath)}: {ex.Message}");
                         }
                     }
                 }
-                catch (ReflectionTypeLoadException ex) // Specifically catch this for loader exceptions
+                catch (ReflectionTypeLoadException ex)
                 {
-                    _logCallback($"Error loading types from assembly {Path.GetFileName(dllPath)}: {ex.Message}");
+                    _hostLogCallback?.Invoke($"PluginManager Error: Error loading types from assembly {Path.GetFileName(dllPath)}: {ex.Message}");
                     foreach (var loaderEx in ex.LoaderExceptions ?? Enumerable.Empty<Exception?>())
                     {
-                        if (loaderEx != null) _logCallback($"  LoaderException: {loaderEx.Message}");
+                        if (loaderEx != null) _hostLogCallback?.Invoke($"  LoaderException: {loaderEx.Message}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logCallback($"Error loading assembly {Path.GetFileName(dllPath)}: {ex.Message}");
+                    _hostLogCallback?.Invoke($"PluginManager Error: Error loading assembly {Path.GetFileName(dllPath)}: {ex.Message}");
                 }
             }
 
-            if (!_plugins.Any())
+            if (!_pluginFactories.Any())
             {
-                _logCallback("No plugins were successfully loaded.");
+                _hostLogCallback?.Invoke("PluginManager: No plugin factories were successfully loaded.");
             }
         }
 
-        public List<IPlugin> GetPlugins()
+        public IEnumerable<IPluginFactory> GetPluginFactories()
         {
-            return _plugins;
+            return _pluginFactories.AsReadOnly();
         }
 
-        public void RunPluginTests(Action<string> logCallback)
+        public IEnumerable<IPluginInstance> GetAllInstances()
         {
-            if (!_plugins.Any())
-            {
-                logCallback("No plugins loaded to run tests.");
-                return;
-            }
-            foreach (var plugin in _plugins)
-            {
-                logCallback($"--- Running Test for Plugin: {plugin.Name} ---");
-                plugin.RunTest(logCallback);
-                logCallback($"--- Test Finished for Plugin: {plugin.Name} ---");
-            }
+            return _activeInstances.AsReadOnly();
         }
+
+        public IPluginInstance? GetInstanceById(string instanceId)
+        {
+            if (string.IsNullOrEmpty(instanceId)) return null;
+            return _activeInstances.FirstOrDefault(inst => inst.InstanceId.Equals(instanceId, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // TODO: Implement RunPluginTests - this will need to change significantly
+        // to iterate over instances or perhaps factories if they have a self-test.
+        // For now, let's comment it out or adapt it minimally if required by caller.
+        // public void RunPluginTests(Action<string> logCallback)
+        // {
+        //     if (!_activeInstances.Any()) // Or _pluginFactories
+        //     {
+        //         logCallback("No active instances or factories loaded to run tests.");
+        //         return;
+        //     }
+        //     foreach (var instance in _activeInstances) // Or factory in _pluginFactories
+        //     {
+        //         logCallback($"--- Running Test for Instance: {instance.InstanceId} (Type: {instance.ParentFactory.TypeName}) ---");
+        //         instance.RunTest(logCallback); // Assuming IPluginInstance has RunTest
+        //         logCallback($"--- Test Finished for Instance: {instance.InstanceId} ---");
+        //     }
+        // }
     }
 }
