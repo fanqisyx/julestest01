@@ -1,17 +1,46 @@
 using CorePlatform;
 using System; // For StringSplitOptions, Exception, double.TryParse
+using System.IO; // For Path
+using System.Reflection; // For Assembly
 
 namespace SamplePlugin
 {
     public class MyPlugin : IScriptablePlugin
     {
         public string Name => "Sample Test Plugin";
-        public string Description => "A simple plugin that performs a mock test and supports script commands.";
+        private string _description = "Description could not be loaded from file.";
+        public string Description => _description;
         private Action<string>? _hostLogCallback;
 
 
         public void Load()
         {
+            string assemblyLocation = Assembly.GetExecutingAssembly().Location;
+            string pluginDirectory = Path.GetDirectoryName(assemblyLocation);
+            string descriptionFileName = "SamplePlugin_description.md";
+            string descriptionFilePath = Path.Combine(pluginDirectory, descriptionFileName);
+
+            Console.WriteLine($"Plugin '{Name}': Attempting to load description from: {descriptionFilePath}");
+
+            if (File.Exists(descriptionFilePath))
+            {
+                try
+                {
+                    _description = File.ReadAllText(descriptionFilePath);
+                    Console.WriteLine($"Plugin '{Name}': Description successfully loaded from {descriptionFilePath}.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Plugin '{Name}': Error reading description file {descriptionFilePath}. Error: {ex.Message}");
+                    _description = "Failed to read description file. Details: " + ex.Message;
+                }
+            }
+            else
+            {
+                Console.WriteLine($"Plugin '{Name}': Description file not found at {descriptionFilePath}. Using fallback description.");
+                _description = "Description file (SamplePlugin_description.md) not found in plugin directory.";
+            }
+
             Console.WriteLine($"Plugin '{Name}': Loaded.");
         }
 
