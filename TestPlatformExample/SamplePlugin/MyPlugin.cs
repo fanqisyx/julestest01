@@ -17,7 +17,7 @@ namespace SamplePlugin
         {
             string assemblyLocation = Assembly.GetExecutingAssembly().Location;
             string pluginDirectory = Path.GetDirectoryName(assemblyLocation);
-            string descriptionFileName = "SamplePlugin_description.md";
+            string descriptionFileName = Path.GetFileNameWithoutExtension(assemblyLocation) + ".md";
             string descriptionFilePath = Path.Combine(pluginDirectory, descriptionFileName);
 
             Console.WriteLine($"Plugin '{Name}': Attempting to load description from: {descriptionFilePath}");
@@ -38,7 +38,7 @@ namespace SamplePlugin
             else
             {
                 Console.WriteLine($"Plugin '{Name}': Description file not found at {descriptionFilePath}. Using fallback description.");
-                _description = "Description file (SamplePlugin_description.md) not found in plugin directory.";
+                _description = $"Description file ({descriptionFileName}) not found in plugin directory.";
             }
 
             Console.WriteLine($"Plugin '{Name}': Loaded.");

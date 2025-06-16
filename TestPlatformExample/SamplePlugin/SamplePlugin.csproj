@@ -8,7 +8,7 @@
     <ProjectReference Include="..\CorePlatform\CorePlatform.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="SamplePlugin_description.md">
+    <Content Include="SamplePlugin.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
