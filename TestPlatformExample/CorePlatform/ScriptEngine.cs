@@ -44,7 +44,7 @@ namespace CorePlatform
             {
                 Assembly.GetAssembly(typeof(object))!,              // System.Private.CoreLib or mscorlib
                 Assembly.GetAssembly(typeof(System.Linq.Enumerable))!, // System.Linq.Expressions / System.Core
-                Assembly.GetAssembly(typeof(IPlugin))!,              // CorePlatform.dll
+                Assembly.GetAssembly(typeof(IPluginFactory))!,       // CorePlatform.dll
                 Assembly.GetAssembly(typeof(ScriptingHost))!,        // CorePlatform.dll
                 Assembly.GetAssembly(typeof(ScriptGlobals))!,        // CorePlatform.dll
                 Assembly.GetAssembly(typeof(System.IO.Path))!,       // System.Runtime.Extensions / System.IO.FileSystem
@@ -177,7 +177,7 @@ namespace CorePlatform
                 pyScope.SetVariable("Host", actualScriptHostForPython);
 
                 // Example: Allow Python scripts to load CorePlatform types if needed via clr.AddReference
-                // pyEngine.Runtime.LoadAssembly(typeof(CorePlatform.IPlugin).Assembly);
+                // pyEngine.Runtime.LoadAssembly(typeof(CorePlatform.IPluginFactory).Assembly); // Or IPluginInstance if more specific types are needed by scripts
 
                 try
                 {

@@ -14,46 +14,48 @@ namespace CorePlatform
             _logCallback = logCallback ?? throw new ArgumentNullException(nameof(logCallback));
         }
 
-        public string[] ListPluginNames()
+        // Updated to list available factory TypeNames, as "plugins" are now more nuanced (factories vs instances)
+        public string[] ListAvailablePluginTypes() // Renamed for clarity
         {
-            return _pluginManager.GetPlugins().Select(p => p.Name).ToArray();
+            return _pluginManager.GetPluginFactories().Select(f => f.TypeName).ToArray();
         }
 
-        public string? ExecutePluginCommand(string pluginName, string commandName, string parameters)
+        // `pluginInstanceId` refers to the InstanceId of an active plugin instance
+        public string? ExecuteCommandOnInstance(string pluginInstanceId, string commandName, string parameters) // Renamed for clarity
         {
-            if (string.IsNullOrEmpty(pluginName))
+            if (string.IsNullOrEmpty(pluginInstanceId))
             {
-                Log("Script Error: Plugin name cannot be null or empty for ExecutePluginCommand.");
-                return "Error: Plugin name cannot be null or empty.";
+                Log("Script Error: Plugin Instance ID cannot be null or empty for ExecuteCommandOnInstance.");
+                return "Error: Plugin Instance ID cannot be null or empty.";
             }
 
-            IPlugin? plugin = _pluginManager.GetPlugins().FirstOrDefault(p => p.Name.Equals(pluginName, StringComparison.OrdinalIgnoreCase));
+            IPluginInstance? instance = _pluginManager.GetInstanceById(pluginInstanceId);
 
-            if (plugin == null)
+            if (instance == null)
             {
-                Log($"Script Error: Plugin '{pluginName}' not found.");
-                return $"Error: Plugin '{pluginName}' not found.";
+                Log($"Script Error: Plugin instance '{pluginInstanceId}' not found.");
+                return $"Error: Plugin instance '{pluginInstanceId}' not found.";
             }
 
-            if (plugin is IScriptablePlugin scriptablePlugin)
+            if (instance is IScriptablePluginInstance scriptableInstance)
             {
                 try
                 {
-                    Log($"Script: Executing command '{commandName}' on plugin '{pluginName}' with params: '{parameters}'");
-                    string? result = scriptablePlugin.ExecuteScriptCommand(commandName, parameters);
-                    Log($"Script: Command '{commandName}' on plugin '{pluginName}' executed. Result: {(result ?? "null")}");
+                    Log($"Script: Executing command '{commandName}' on instance '{pluginInstanceId}' (Type: {instance.ParentFactory.TypeName}) with params: '{parameters}'");
+                    string? result = scriptableInstance.ExecuteScriptCommand(commandName, parameters);
+                    Log($"Script: Command '{commandName}' on instance '{pluginInstanceId}' executed. Result: {(result ?? "null")}");
                     return result;
                 }
                 catch (Exception ex)
                 {
-                    Log($"Script Error: Exception executing command '{commandName}' on plugin '{pluginName}': {ex.InnerException?.Message ?? ex.Message}");
-                    return $"Error: Exception on plugin '{pluginName}': {ex.InnerException?.Message ?? ex.Message}";
+                    Log($"Script Error: Exception executing command '{commandName}' on instance '{pluginInstanceId}': {ex.InnerException?.Message ?? ex.Message}");
+                    return $"Error: Exception on instance '{pluginInstanceId}': {ex.InnerException?.Message ?? ex.Message}";
                 }
             }
             else
             {
-                Log($"Script Error: Plugin '{pluginName}' does not support script commands (does not implement IScriptablePlugin).");
-                return $"Error: Plugin '{pluginName}' is not scriptable.";
+                Log($"Script Error: Plugin instance '{pluginInstanceId}' (Type: {instance.ParentFactory.TypeName}) does not support script commands (does not implement IScriptablePluginInstance).");
+                return $"Error: Plugin instance '{pluginInstanceId}' is not scriptable.";
             }
         }
 
