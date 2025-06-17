@@ -1,10 +1,54 @@
-Host.Log("Attempting to list loaded plugins...");
-string[] pluginNames = Host.ListPluginNames();
-if (pluginNames.Length == 0) {
-    Host.Log("No plugins are currently loaded.");
-} else {
-    Host.Log("Currently loaded plugins are:");
-    foreach (string name in pluginNames) {
-        Host.Log($"- {name}");
+// example2.cs.txt - Demonstrates listing plugin factories and instances.
+Host.Log("Example Script 2: Listing Factories and Instances");
+Host.Log("-------------------------------------------------");
+
+Host.Log("Listing available plugin factory types...");
+string[] factoryTypes = Host.ListAvailablePluginTypes();
+if (factoryTypes != null && factoryTypes.Length > 0)
+{
+    foreach (string typeName in factoryTypes)
+    {
+        Host.Log($"- Factory Type: {typeName}");
     }
 }
+else
+{
+    Host.Log("No plugin factory types found.");
+}
+Host.Log(""); // Blank line for readability
+
+Host.Log("Listing all active plugin instance IDs...");
+string[] allInstanceIds = Host.ListActiveInstances();
+if (allInstanceIds != null && allInstanceIds.Length > 0)
+{
+    foreach (string instanceId in allInstanceIds)
+    {
+        Host.Log($"- Instance ID: {instanceId}");
+    }
+}
+else
+{
+    Host.Log("No active plugin instances found.");
+}
+Host.Log("");
+
+Host.Log("Listing active instance IDs for factory type 'SamplePlugin'...");
+// Assuming 'SamplePlugin' is the TypeName of your sample plugin factory.
+// This TypeName needs to match what SamplePluginFactory.TypeName returns.
+string samplePluginTypeName = "SamplePlugin";
+string[] samplePluginInstanceIds = Host.ListActiveInstancesForType(samplePluginTypeName);
+if (samplePluginInstanceIds != null && samplePluginInstanceIds.Length > 0)
+{
+    foreach (string instanceId in samplePluginInstanceIds)
+    {
+        Host.Log($"- Instance ID ('{samplePluginTypeName}'): {instanceId}");
+    }
+}
+else
+{
+    Host.Log($"No active instances found for factory type '{samplePluginTypeName}'.");
+    Host.Log("Note: For this to show results, you need to have created instances of 'SamplePlugin' via the UI first.");
+}
+
+Host.Log("-------------------------------------------------");
+Host.Log("Example Script 2 Finished.");

@@ -1,14 +1,35 @@
-// Ensure 'Sample Test Plugin' is loaded first via MainForm's 'Load Plugins' button.
-string targetPlugin = "Sample Test Plugin"; // Plugin's Name property
+// example3.cs.txt - Demonstrates executing a command on a specific plugin instance.
+Host.Log("Example Script 3: Executing Command on a SamplePlugin Instance");
+Host.Log("---------------------------------------------------------------");
 
-Host.Log($"Attempting to execute 'GetStatus' on '{targetPlugin}'...");
-string? statusResult = Host.ExecutePluginCommand(targetPlugin, "GetStatus", null); // Script passes null as parameters
-Host.Log($"'{targetPlugin}' GetStatus result: {(statusResult ?? "null")}");
+string targetFactoryType = "SamplePlugin"; // TypeName of the SamplePluginFactory
+string commandToExecute = "GetStatus";    // A command supported by SamplePlugin instances
+string commandParameters = "";
 
-Host.Log($"Attempting to execute 'Echo' on '{targetPlugin}'...");
-string? echoResult = Host.ExecutePluginCommand(targetPlugin, "Echo", "Hello from Script Example 3!");
-Host.Log($"'{targetPlugin}' Echo result: {(echoResult ?? "null")}");
+Host.Log($"Attempting to find an active instance of type '{targetFactoryType}'...");
+string[] instanceIds = Host.ListActiveInstancesForType(targetFactoryType);
 
-Host.Log($"Attempting to execute 'Add' on '{targetPlugin}'...");
-string? addResult = Host.ExecutePluginCommand(targetPlugin, "Add", "123,456");
-Host.Log($"'{targetPlugin}' Add result: {(addResult ?? "null")}");
+if (instanceIds != null && instanceIds.Length > 0)
+{
+    string instanceIdToCommand = instanceIds[0]; // Pick the first available instance
+    Host.Log($"Found instance: '{instanceIdToCommand}'. Executing command '{commandToExecute}'...");
+
+    string? result = Host.ExecuteCommandOnInstance(instanceIdToCommand, commandToExecute, commandParameters);
+
+    if (result != null)
+    {
+        Host.Log($"Command result from '{instanceIdToCommand}': {result}");
+    }
+    else
+    {
+        Host.Log($"Command '{commandToExecute}' on instance '{instanceIdToCommand}' returned no message or failed.");
+    }
+}
+else
+{
+    Host.Log($"No active instances of type '{targetFactoryType}' found.");
+    Host.Log("Please create and configure an instance of 'SamplePlugin' first using the main application UI.");
+}
+
+Host.Log("---------------------------------------------------------------");
+Host.Log("Example Script 3 Finished.");

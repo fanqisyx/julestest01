@@ -1,5 +1,36 @@
-string nonExistentPlugin = "FakePlugin123";
-Host.Log($"Attempting to execute a command on a non-existent plugin: '{nonExistentPlugin}'...");
-string? result = Host.ExecutePluginCommand(nonExistentPlugin, "AnyCommand", "anyparams");
-Host.Log($"Result for '{nonExistentPlugin}': {(result ?? "null")}");
-// Expected: Result will contain an error message.
+// example4.cs.txt - Demonstrates handling "not found" scenarios.
+Host.Log("Example Script 4: Handling Not Found Scenarios");
+Host.Log("----------------------------------------------");
+
+string nonExistentFactoryType = "NonExistentPluginFactory123";
+Host.Log($"Attempting to list instances for a non-existent factory type: '{nonExistentFactoryType}'...");
+string[] instancesForNonExistentType = Host.ListActiveInstancesForType(nonExistentFactoryType);
+if (instancesForNonExistentType == null || instancesForNonExistentType.Length == 0)
+{
+    Host.Log($"Correctly found no instances for '{nonExistentFactoryType}'. (Count: {instancesForNonExistentType?.Length ?? 0})");
+}
+else
+{
+    Host.Log($"Warning: Unexpectedly found instances for '{nonExistentFactoryType}'. This might indicate an issue.");
+}
+Host.Log("");
+
+
+string nonExistentInstanceId = "NonExistentInstanceXYZ987";
+string commandToExecute = "AnyCommand";
+Host.Log($"Attempting to execute command '{commandToExecute}' on a non-existent instance ID: '{nonExistentInstanceId}'...");
+string? result = Host.ExecuteCommandOnInstance(nonExistentInstanceId, commandToExecute, "");
+
+if (result == null || result.StartsWith("Error:")) // Host.ExecuteCommandOnInstance returns an error string or null
+{
+    Host.Log($"Command execution on '{nonExistentInstanceId}' correctly returned: {(result ?? "null (no direct return)")}. This indicates the instance was not found or command failed as expected.");
+    // Note: ScriptingHost.ExecuteCommandOnInstance logs "Instance not found" itself.
+}
+else
+{
+    Host.Log($"Warning: Command execution on '{nonExistentInstanceId}' unexpectedly returned: {result}. This might indicate an issue.");
+}
+Host.Log("");
+
+Host.Log("----------------------------------------------");
+Host.Log("Example Script 4 Finished.");

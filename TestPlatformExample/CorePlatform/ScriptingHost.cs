@@ -69,5 +69,29 @@ namespace CorePlatform
         {
             this.Log(message?.ToString() ?? string.Empty);
         }
+
+        /// <summary>
+        /// Lists the IDs of all currently active plugin instances.
+        /// </summary>
+        /// <returns>An array of active instance IDs.</returns>
+        public string[] ListActiveInstances()
+        {
+            if (_pluginManager == null) return Array.Empty<string>();
+            return _pluginManager.GetAllInstances().Select(i => i.InstanceId).ToArray();
+        }
+
+        /// <summary>
+        /// Lists the IDs of active plugin instances for a specific factory type.
+        /// </summary>
+        /// <param name="factoryTypeName">The TypeName of the plugin factory.</param>
+        /// <returns>An array of active instance IDs for the specified factory type.</returns>
+        public string[] ListActiveInstancesForType(string factoryTypeName)
+        {
+            if (_pluginManager == null || string.IsNullOrEmpty(factoryTypeName)) return Array.Empty<string>();
+            return _pluginManager.GetAllInstances()
+                                  .Where(i => i.ParentFactory.TypeName.Equals(factoryTypeName, StringComparison.OrdinalIgnoreCase))
+                                  .Select(i => i.InstanceId)
+                                  .ToArray();
+        }
     }
 }

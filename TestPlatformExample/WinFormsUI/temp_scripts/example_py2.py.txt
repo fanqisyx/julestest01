@@ -1,6 +1,35 @@
-# Python Example 2: List Plugins
-plugin_names = Host.ListPluginNames()
-if plugin_names and len(plugin_names) > 0:
-    Host.print("Loaded plugins (Python): " + ", ".join(plugin_names))
+# example_py2.py.txt - Demonstrates listing plugin factories and instances in Python.
+Host.Log("Python Example Script 2: Listing Factories and Instances")
+Host.Log("-------------------------------------------------------")
+
+Host.Log("Listing available plugin factory types...")
+factory_types = Host.ListAvailablePluginTypes() # This returns a System.String[]
+if factory_types is not None and factory_types.Length > 0:
+    for type_name in factory_types:
+        Host.Log("- Factory Type: {}".format(type_name))
 else:
-    Host.print("No plugins are currently loaded (Python).")
+    Host.Log("No plugin factory types found.")
+Host.Log("") # Blank line
+
+Host.Log("Listing all active plugin instance IDs...")
+all_instance_ids = Host.ListActiveInstances() # System.String[]
+if all_instance_ids is not None and all_instance_ids.Length > 0:
+    for instance_id in all_instance_ids:
+        Host.Log("- Instance ID: {}".format(instance_id))
+else:
+    Host.Log("No active plugin instances found.")
+Host.Log("")
+
+Host.Log("Listing active instance IDs for factory type 'SamplePlugin'...")
+# Assuming 'SamplePlugin' is the TypeName of your sample plugin factory.
+sample_plugin_type_name = "SamplePlugin"
+sample_plugin_instance_ids = Host.ListActiveInstancesForType(sample_plugin_type_name) # System.String[]
+if sample_plugin_instance_ids is not None and sample_plugin_instance_ids.Length > 0:
+    for instance_id in sample_plugin_instance_ids:
+        Host.Log("- Instance ID ('{}'): {}".format(sample_plugin_type_name, instance_id))
+else:
+    Host.Log("No active instances found for factory type '{}'.".format(sample_plugin_type_name))
+    Host.Log("Note: For this to show results, you need to have created instances of 'SamplePlugin' via the UI first.")
+
+Host.Log("-------------------------------------------------------")
+Host.Log("Python Example Script 2 Finished.")
