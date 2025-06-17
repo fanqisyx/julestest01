@@ -69,7 +69,8 @@ namespace CorePlatform
                     {
                         try
                         {
-                            IPluginFactory? factory = Activator.CreateInstance(type) as IPluginFactory;
+                            // Pass the _hostLogCallback to the factory constructor
+                            IPluginFactory? factory = Activator.CreateInstance(type, new object?[] { _hostLogCallback }) as IPluginFactory;
                             if (factory != null)
                             {
                                 // Check for duplicates by FactoryId or TypeName before adding
