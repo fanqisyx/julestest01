@@ -127,22 +127,30 @@ namespace CorePlatform
             return _activeInstances.FirstOrDefault(inst => inst.InstanceId.Equals(instanceId, StringComparison.OrdinalIgnoreCase));
         }
 
-        // TODO: Implement RunPluginTests - this will need to change significantly
-        // to iterate over instances or perhaps factories if they have a self-test.
-        // For now, let's comment it out or adapt it minimally if required by caller.
-        // public void RunPluginTests(Action<string> logCallback)
-        // {
-        //     if (!_activeInstances.Any()) // Or _pluginFactories
-        //     {
-        //         logCallback("No active instances or factories loaded to run tests.");
-        //         return;
-        //     }
-        //     foreach (var instance in _activeInstances) // Or factory in _pluginFactories
-        //     {
-        //         logCallback($"--- Running Test for Instance: {instance.InstanceId} (Type: {instance.ParentFactory.TypeName}) ---");
-        //         instance.RunTest(logCallback); // Assuming IPluginInstance has RunTest
-        //         logCallback($"--- Test Finished for Instance: {instance.InstanceId} ---");
-        //     }
-        // }
+        public void RunPluginTests(Action<string> logCallback)
+        {
+            _hostLogCallback?.Invoke("PluginManager: Starting tests on all active instances...");
+            if (!_activeInstances.Any())
+            {
+                _hostLogCallback?.Invoke("PluginManager: No active instances to test.");
+                return;
+            }
+
+            foreach (var instance in _activeInstances)
+            {
+                try
+                {
+                    _hostLogCallback?.Invoke($"PluginManager: Running test for instance: {instance.InstanceId} (Type: {instance.ParentFactory.TypeName})...");
+                    instance.RunTest(logCallback); // Pass the specific logCallback for this test run
+                    _hostLogCallback?.Invoke($"PluginManager: Test completed for instance: {instance.InstanceId}.");
+                }
+                catch (Exception ex)
+                {
+                    _hostLogCallback?.Invoke($"PluginManager: Error running test for instance {instance.InstanceId}. Error: {ex.Message}");
+                    // Optionally, log the full exception details if needed
+                }
+            }
+            _hostLogCallback?.Invoke("PluginManager: Finished running tests on all instances.");
+        }
     }
 }
