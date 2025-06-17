@@ -126,7 +126,7 @@ namespace WinFormsUI
             this.fctbExampleViewer.Dock = System.Windows.Forms.DockStyle.Fill;
             this.fctbExampleViewer.Name = "fctbExampleViewer";
             this.fctbExampleViewer.ReadOnly = true;
-            this.fctbExampleViewer.Language = Language.CSharp;
+            this.fctbExampleViewer.Language = FastColoredTextBoxNS.Language.CSharp;
             this.fctbExampleViewer.Font = new System.Drawing.Font("Consolas", 9.75F);
             this.fctbExampleViewer.ShowLineNumbers = true;
             this.fctbExampleViewer.BorderStyle = BorderStyle.FixedSingle;
@@ -219,7 +219,7 @@ namespace WinFormsUI
                 this.fctbExampleViewer.Text = selectedExample.Code;
                 if (selectedExample.Language == CorePlatform.ScriptLanguage.Python)
                 {
-                    this.fctbExampleViewer.Language = FastColoredTextBoxNS.Language.Python;
+                    this.fctbExampleViewer.Language = FastColoredTextBoxNS.Language.Python; // This line should already be correct
                 }
                 else // Default to CSharp for CSharp examples or any error messages shown in viewer
                 {

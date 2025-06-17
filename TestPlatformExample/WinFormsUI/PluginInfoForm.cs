@@ -113,14 +113,14 @@ namespace WinFormsUI
         private void PopulatePluginList()
         {
             lvPlugins.Items.Clear();
-            var plugins = _pluginManager.GetPlugins();
-            if (plugins != null)
+            var factories = _pluginManager.GetPluginFactories(); // Changed to GetPluginFactories
+            if (factories != null)
             {
-                foreach (var plugin in plugins)
+                foreach (var factory in factories) // Iterate through factories
                 {
-                    ListViewItem item = new ListViewItem(plugin.Name);
-                    item.SubItems.Add(plugin.Description);
-                    item.Tag = plugin;
+                    ListViewItem item = new ListViewItem(factory.TypeName); // Use TypeName
+                    item.SubItems.Add(factory.TypeDescription); // Use TypeDescription
+                    item.Tag = factory; // Tag is now IPluginFactory
                     lvPlugins.Items.Add(item);
                 }
             }
@@ -145,54 +145,40 @@ namespace WinFormsUI
             if (lvPlugins.SelectedItems.Count > 0)
             {
                 ListViewItem selectedItem = lvPlugins.SelectedItems[0];
-                if (selectedItem.Tag is IPlugin plugin)
+                if (selectedItem.Tag is IPluginFactory factory) // Changed to IPluginFactory
                 {
                     StringBuilder details = new StringBuilder();
-                    details.AppendLine($"Name: {plugin.Name}");
-                    details.AppendLine($"Description: {plugin.Description}");
-                    details.AppendLine($"Type: {plugin.GetType().FullName}");
-                    details.AppendLine($"Assembly Location: {plugin.GetType().Assembly.Location}");
+                    details.AppendLine($"Factory Type Name: {factory.TypeName}"); // Use factory.TypeName
+                    details.AppendLine($"Factory Type Description: {factory.TypeDescription}"); // Use factory.TypeDescription
+                    details.AppendLine($"Factory ID: {factory.FactoryId}");
+                    details.AppendLine($"Factory Implementation Type: {factory.GetType().FullName}");
+                    details.AppendLine($"Assembly Location: {factory.GetType().Assembly.Location}");
                     details.AppendLine();
 
-                    if (plugin is IScriptablePlugin scriptablePlugin)
+                    if (factory is IScriptablePluginFactory scriptableFactory) // Changed to IScriptablePluginFactory
                     {
-                        details.AppendLine("Scriptable (IScriptablePlugin): Yes");
-                        try
-                        {
-                            string[] commands = scriptablePlugin.GetAvailableScriptCommands();
-                            if (commands != null && commands.Length > 0)
-                            {
-                                details.AppendLine("Available Script Commands:");
-                                foreach (string cmd in commands)
-                                {
-                                    details.AppendLine($"  - {cmd}");
-                                }
-                            }
-                            else
-                            {
-                                details.AppendLine("Available Script Commands: None declared by plugin.");
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            details.AppendLine($"Available Script Commands: Error retrieving commands ({ex.GetType().Name}: {ex.Message}).");
-                        }
+                        details.AppendLine("Scriptable Factory (IScriptablePluginFactory): Yes");
+                        // IScriptablePluginFactory does not define GetAvailableScriptCommands.
+                        // This information is instance-specific.
+                        // The section for listing commands has been removed for the factory view.
+                        // If needed, one might display generic command *types* the factory can produce,
+                        // but not specific commands for non-existent instances.
                     }
                     else
                     {
-                        details.AppendLine("Scriptable (IScriptablePlugin): No");
+                        details.AppendLine("Scriptable Factory (IScriptablePluginFactory): No");
                     }
 
                     rtbPluginDetails.Text = details.ToString();
                 }
                 else
                 {
-                    rtbPluginDetails.Text = "Error: Selected item does not contain valid plugin data.";
+                    rtbPluginDetails.Text = "Error: Selected item does not contain valid factory data.";
                 }
             }
             else
             {
-                rtbPluginDetails.Text = "Select a plugin from the list to see its details.";
+                rtbPluginDetails.Text = "Select a plugin factory from the list to see its details.";
             }
         }
     }

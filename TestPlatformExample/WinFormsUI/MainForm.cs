@@ -107,8 +107,11 @@ namespace WinFormsUI
         private void btnRunTests_Click(object sender, EventArgs e)
         {
             LogMessage("Running tests for all loaded plugins...");
-            if (!_pluginManager.GetPlugins().Any()) {
-                LogMessage("No plugins are loaded. Click 'Load Plugins' first.");
+            // TODO: Update RunPluginTests or this call, as GetPlugins() is obsolete.
+            // This will likely fail or not work as expected until PluginManager.RunPluginTests is updated
+            // for the new factory/instance model. For now, let's check GetPluginFactories().
+            if (!_pluginManager.GetPluginFactories().Any()) { // Changed from GetPlugins()
+                LogMessage("No plugin factories are loaded. Click 'Load Plugins' first.");
                 return;
             }
             Task.Run(() => _pluginManager.RunPluginTests(LogMessage));
@@ -133,7 +136,8 @@ namespace WinFormsUI
                 return;
             }
 
-            ScriptExecutionResult result = await _scriptEngine.ExecuteScriptAsync(scriptText, _pluginManager, LogMessage, null, null); // Pass null for custom settings from MainForm
+            // Added CorePlatform.ScriptLanguage.CSharp as the second argument
+            ScriptExecutionResult result = await _scriptEngine.ExecuteScriptAsync(scriptText, CorePlatform.ScriptLanguage.CSharp, _pluginManager, LogMessage, null, null);
 
             if (result.Success)
             {
@@ -226,14 +230,14 @@ namespace WinFormsUI
 
         private void RefreshPluginList()
         {
-            var loadedPlugins = _pluginManager.GetPlugins();
-            if (loadedPlugins.Any())
+            var loadedFactories = _pluginManager.GetPluginFactories(); // Changed from GetPlugins()
+            if (loadedFactories.Any())
             {
-                LogMessage($"Currently loaded plugins: {string.Join(", ", loadedPlugins.Select(p => p.Name))}");
+                LogMessage($"Currently loaded plugin factories: {string.Join(", ", loadedFactories.Select(f => f.TypeName))}");
             }
             else
             {
-                LogMessage("No plugins are currently loaded.");
+                LogMessage("No plugin factories are currently loaded.");
             }
         }
     }
