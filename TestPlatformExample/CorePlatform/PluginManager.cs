@@ -152,5 +152,117 @@ namespace CorePlatform
             }
             _hostLogCallback?.Invoke("PluginManager: Finished running tests on all instances.");
         }
+
+        public IPluginInstance? CreateNewInstance(Guid factoryId, string instanceId, object? initialConfig)
+        {
+            if (string.IsNullOrEmpty(instanceId))
+            {
+                _hostLogCallback?.Invoke("PluginManager Error: Instance ID cannot be null or empty.");
+                return null;
+            }
+
+            if (_activeInstances.Any(i => i.InstanceId.Equals(instanceId, StringComparison.OrdinalIgnoreCase)))
+            {
+                _hostLogCallback?.Invoke($"PluginManager Error: An instance with ID '{instanceId}' already exists.");
+                return null;
+            }
+
+            var factory = _pluginFactories.FirstOrDefault(f => f.FactoryId == factoryId);
+            if (factory == null)
+            {
+                _hostLogCallback?.Invoke($"PluginManager Error: Factory with ID '{factoryId}' not found.");
+                return null;
+            }
+
+            try
+            {
+                _hostLogCallback?.Invoke($"PluginManager: Creating instance '{instanceId}' from factory '{factory.TypeName}' (ID: {factoryId}).");
+                IPluginInstance newInstance = factory.CreateInstance(instanceId, initialConfig);
+
+                newInstance.Initialize(initialConfig); // Initialize with the provided config
+                newInstance.Start(); // Start the instance
+
+                _activeInstances.Add(newInstance);
+                _hostLogCallback?.Invoke($"PluginManager: Instance '{newInstance.InstanceId}' created, initialized, started, and added to active list.");
+                return newInstance;
+            }
+            catch (Exception ex)
+            {
+                _hostLogCallback?.Invoke($"PluginManager Error: Failed to create or initialize instance '{instanceId}' from factory '{factory.TypeName}'. Error: {ex.Message}");
+                return null;
+            }
+        }
+
+        public bool DeleteInstance(string instanceId)
+        {
+            if (string.IsNullOrEmpty(instanceId))
+            {
+                _hostLogCallback?.Invoke("PluginManager Error: Instance ID cannot be null or empty for deletion.");
+                return false;
+            }
+
+            var instance = GetInstanceById(instanceId); // Uses the already implemented GetInstanceById
+            if (instance == null)
+            {
+                _hostLogCallback?.Invoke($"PluginManager Error: Instance with ID '{instanceId}' not found for deletion.");
+                return false;
+            }
+
+            try
+            {
+                _hostLogCallback?.Invoke($"PluginManager: Stopping instance '{instance.InstanceId}' (Type: {instance.ParentFactory.TypeName})...");
+                instance.Stop();
+                _activeInstances.Remove(instance);
+                _hostLogCallback?.Invoke($"PluginManager: Instance '{instance.InstanceId}' stopped and removed.");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _hostLogCallback?.Invoke($"PluginManager Error: Failed to stop or remove instance '{instance.InstanceId}'. Error: {ex.Message}");
+                // Optionally, re-add if removal failed but stop succeeded, though typically removal from list is safe.
+                return false;
+            }
+        }
+
+        public bool UpdateInstanceConfiguration(string instanceId, object newConfig)
+        {
+            if (string.IsNullOrEmpty(instanceId))
+            {
+                _hostLogCallback?.Invoke("PluginManager Error: Instance ID cannot be null or empty for configuration update.");
+                return false;
+            }
+
+            var instance = GetInstanceById(instanceId);
+            if (instance == null)
+            {
+                _hostLogCallback?.Invoke($"PluginManager Error: Instance with ID '{instanceId}' not found for configuration update.");
+                return false;
+            }
+
+            _hostLogCallback?.Invoke($"PluginManager: Attempting to update configuration for instance '{instance.InstanceId}' (Type: {instance.ParentFactory.TypeName}).");
+
+            try
+            {
+                // Optional: Stop the instance before reconfiguring if the change is significant
+                // _hostLogCallback?.Invoke($"PluginManager: Stopping instance '{instance.InstanceId}' before re-configuration...");
+                // instance.Stop();
+
+                instance.Initialize(newConfig); // Re-initialize with the new configuration
+
+                // Optional: Restart the instance if it was stopped
+                // _hostLogCallback?.Invoke($"PluginManager: Starting instance '{instance.InstanceId}' after re-configuration...");
+                // instance.Start();
+
+                _hostLogCallback?.Invoke($"PluginManager: Configuration updated for instance '{instance.InstanceId}'.");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _hostLogCallback?.Invoke($"PluginManager Error: Failed to update configuration for instance '{instance.InstanceId}'. Error: {ex.Message}");
+                // Consider if the instance should be left in a stopped state or if an attempt to revert/restart with old config is needed.
+                // For now, we just log the error.
+                return false;
+            }
+        }
     }
 }
